@@ -2,8 +2,9 @@
                                                                                    
 x		= 15
 y		= 24
-videoseg	= 0b800h
-color1		= 8eh           ;Full animation begin from 8eh, part - from 5eh
+videoseg	= 0b800h		; The address of the video memory
+color1		= 80h           ; Full animation begin from 80h = 1 000 0000 
+							; (1 = animation, 000 = black backgroung, 0000 = black symbols)
                                                                                 
 .code
 org 100h
@@ -11,17 +12,19 @@ start:		mov ax, videoseg
 		mov es, ax
 		mov ah, color1
 		mov si, offset msg
-		mov di, (y * 80 + x) * 2
+		mov di, (y * 80 + x) * 2	; Offset relative to the upper-left corner
 
 		mov bl, color1 
 
-again:		lodsb		        ; mov al, [si]
+again:		lodsb		        ; mov al, [si] - put next byte from [SI] to AL
 		cmp al, '$'
 		je  done
 			
-		cmp al, '~'		; changt colour
+		cmp al, '~'		; change colour
 		je  changecolor
-		stosw           	; mov es:[di], ax / inc di
+		stosw           	; mov es:[di], ax / inc di - copies the world from AX to the memory
+							; location that ES:DI points. Also does INC or DEC DI to prepare
+							; for the next copy
 		jmp again
 
 changecolor:	inc bl
