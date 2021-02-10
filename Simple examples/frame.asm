@@ -11,8 +11,8 @@ videoseg	= 0b800h
 color		= 4Eh
 count		= 2
 
-x_left		= 30 ; 30
-x_right 	= 70
+x_left		= 30 
+x_right 	= 40
 y_left		= 12
 y_right		= 17
 
@@ -23,7 +23,7 @@ up_left_corner	= 0ec9h		; ã
 dn_right_corner = 0ebch         ; -
 dn_left_corner	= 0ec8h        	; L
 space		= 0e00h
-
+		
 
 ;---------------begin the program--------------------------------------------
 
@@ -39,7 +39,7 @@ Start:		mov ah, 9
 	      	mov dx, count
 
 ;---------------draw first line---------------------------------------
-		mov ax, up_left_corner
+		mov ax, array[4]			; up_left_corner
 		mov bl, 0				; flag of the draw first line	
 		call draw_up_and_down_line
 		mov bl, 1                                           	
@@ -56,13 +56,13 @@ my_loop:
 
 
 ;---------------draw last line----------------------------------------
-		mov ax, space
+		mov ax, array[12]			; space
 		mov cx, 80 - (x_right - x_left) - 2 
 
 print_probel:	stosw
 		loop print_probel
 
-		mov ax, dn_left_corner
+		mov ax, array[10]			; dn_left_corner
 		call draw_up_and_down_line
 
 ;---------------end the program-------------------------------------------------		
@@ -78,25 +78,22 @@ print_probel:	stosw
 
 ;--------------------------------------------------------------------		
 ;---------------draw up and down line--------------------------------
+
 draw_up_and_down_line proc
 		
-		;mov ax, up_left_corner
 		stosw
 
-		mov ax, horizontal_char
+		mov ax, array[0]			; horizontal_char
 		mov cx, x_right - x_left	
 
-lopa:		stosw			; mov es:[di], ax + inc ax
+lopa:		stosw					; mov es:[di], ax + inc ax
 		loop lopa
-		
-		cmp ax, up_left_corner
-		je put_dn_right_corner
-		
-		mov ax, up_right_corner
+		                      		
+		mov ax, array[6] 			; up_right_corner
 
 		cmp bl, 1
 		jne draw_first_line
-		mov ax, dn_right_corner
+		mov ax, array[8]			; dn_right_corner
 		mov bl, 1
 
 draw_first_line:
@@ -112,14 +109,14 @@ draw_up_and_down_line endp
 ;---------------draw central lines------------------------------------
 
 draw_central_line proc
-		mov ax, space
+		mov ax, array[12]			; space
 		mov cx, 80 - (x_right - x_left) - 2 
 
 print_probels:	stosw
 		loop print_probels
 
 
-		mov ax, vertical_char
+		mov ax, array[2]			; vertical_char
 		stosw
 		  
 		mov ax, space 
@@ -128,7 +125,7 @@ print_probels:	stosw
 lopa_2:		stosw
 		loop lopa_2
 
-		mov ax, vertical_char
+		mov ax, array[2]			; vertical_char
 		stosw
 
 		ret
@@ -137,13 +134,14 @@ draw_central_line endp
 ;---------------------------------------------------------------------
 ;---------------------------------------------------------------------
 put_dn_right_corner:		
-		mov ax, dn_right_corner
+		mov ax, array[5]			;  dn_right_corner
 		ret
 ;---------------------------------------------------------------------		
 
 .data
-msg		db 'Hello$'      
-
+msg		db 'Hello$'
+array		dw  horizontal_char, vertical_char, up_left_corner, up_right_corner, dn_right_corner, dn_left_corner, space 
+                       
 
 
 end	Start	
