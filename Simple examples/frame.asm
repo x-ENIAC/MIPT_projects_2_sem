@@ -41,7 +41,7 @@ space		= 0e00h
 
 
 ;--------------------------------------------------------------------------		
-;---------------begin the program------------------------------------------
+;---------------------begin the program------------------------------------
 ;---------- !!! trash list: ax, es, cx, di, si !!! ------------------------
 
 Start:		mov ax, videoseg
@@ -56,6 +56,7 @@ rects:
 
 		mov di, ax		
 		call draw_rect
+		call draw_shadow
 
 		pop cx
 
@@ -132,7 +133,7 @@ offset_calculate endp
 
 
 ;------------------------------------------------------------------—-------
-;---------------draw rect-----------------------------------------—--------
+;------------------------draw rect-----------------------------------------
 ;---------- !!! trash list: ax, bl, dx, cx !!! ----------------------------
 	   
 draw_rect proc
@@ -142,9 +143,12 @@ draw_rect proc
 		call draw_up_and_down_line
 		mov bl, 1
 
+		mov ax, space
+		stosw
+
 ;---------------draw all central lines-------------------------------—-----  
 		mov dx, count_lines
-		mov cx, dx
+		mov cx, dx       
 my_loop:
 		mov dx, cx
 		call draw_central_line
@@ -156,7 +160,7 @@ my_loop:
                 mov cx, symbols_into_line ; 80 - (x_right - x_left) - 2
    		sub cx, x_right
    		add cx, x_left
-   		sub cx, 2
+   		sub cx, 3
 		mov ax, space
 
 print_probel:	stosw
@@ -167,6 +171,9 @@ print_probel:	stosw
 
 		mov ax, dn_left_corner
 		call draw_up_and_down_line
+
+		mov ax, 4eB0h
+		stosw
 		ret
 draw_rect endp
 ;--------------------------------------------------------------------------		
@@ -197,8 +204,15 @@ draw_up_and_down_line proc
 		jne draw_first_line                                      
 		mov ax, dn_right_corner
 		mov bl, 1
+
+		stosw
+		;mov ax, 4eB0h
+		;stosw
+
+		ret
 		
 	draw_first_line:
+		inc cx
 		stosw
 		save <dx, cx, ax>
 		call delay
@@ -219,7 +233,7 @@ draw_central_line proc
                 mov cx, symbols_into_line ; 80 - (x_right - x_left) - 2
    		sub cx, x_right
    		add cx, x_left
-   		sub cx, 2             
+   		sub cx, 3             
 		mov ax, space
 		
 print_probels:	stosw
@@ -248,10 +262,62 @@ lopa_2: 	stosw
 		save <dx, cx, ax>
 		call delay
 		restore <ax, cx, dx>
+
+		mov ax, 4eB0h
+		stosw
 				
 		ret
 draw_central_line endp
 ;-------------------------------------------------------------------—------
+
+
+
+;--------------------------------------------------------------------------
+;----------------------draw the shadow-------------------------------------
+;---------- !!! trash list: !!! --------------------------------
+
+draw_shadow proc 
+		add di, symbols_into_line
+		add di, symbols_into_line
+		sub di, x_right
+
+		push ax 
+		mov ax, di
+		shr di, 1
+		shl di, 1
+		cmp di, ax
+	 
+		;push ax
+		;push bx
+		;mov ax, di
+		;mov bh, 2
+		;mov bl, 2 
+		;div bl		
+
+		;cmp al, 0
+		jne draw_from_this_place
+
+		add di, 1
+                		
+	draw_from_this_place:
+		;pop bx
+		;pop di
+		pop ax
+				
+		mov cx, x_right
+		sub cx, x_left
+		mov ax, 4eB0h
+
+	cycle_draw_shadow:		
+		;stosw
+		mov es:[di], ax
+		add di, 2
+		loop cycle_draw_shadow
+
+		ret
+		
+draw_shadow endp
+;--------------------------------------------------------------------------
 
 
 
