@@ -22,12 +22,9 @@ color_regs	= 0Eh
 count_rect	= 2
 
 number		= 3802
-x_right		equ 75
-x_left		equ 60
 width_frame	equ 9
 height_frame	equ 9
 
-y_left		equ 3
 symbols_into_line equ 160
 two_bytes	equ 2
 
@@ -170,7 +167,40 @@ draw_frame proc
 		push height_frame		
 
 		call draw_rect
-		add sp, 4 * 2		             
+		add sp, 4 * 2
+
+		add x_left, 2
+
+		add y_left, 1
+		push y_left x_left offset register_ax
+		call print_message
+		add sp, 3 * 2
+
+		add y_left, 2
+		push y_left x_left offset register_bx
+		call print_message
+		add sp, 3 * 2
+
+		add y_left, 2
+		push y_left x_left offset register_cx
+		call print_message
+		add sp, 3 * 2
+		                   
+		add y_left, 2
+		push y_left x_left offset register_dx
+		call print_message
+		add sp, 3 * 2
+
+	        add x_left, 3	        
+	        push 20 16
+	        mov di, bx	   
+	        call itoa
+	        ;add sp, 2 * 2
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2 
 
 		pop dx cx bx ax
 
@@ -303,41 +333,89 @@ delay endp
 ;-------------------print msg from stack-----------------------------------
 ;---------- !!! trash list: ax, bx, cx, di !!! ----------------------------
 
-print_msg_from_stack	proc message_offset
-		;pop cx
-		xor ax, ax
-
+print_message	proc message_offset, gorizontal_offset, vertical_offset 
 		push bp
 		mov bp, sp
 
+		push ax cx
+
+		mov ax, gorizontal_offset 
+		mov cx, vertical_offset
+		call offset_calculate
+		mov bx, ax
+
+		pop cx ax	
+
 		mov si, message_offset
-		mov ah, color		
+		mov ah, color
 
-	print_cycle_stack:
-		;pop ax
-		lodsb
+		;mov di, bx
+		cld	
 
+	print_loop:
+		lodsb		
 	        cmp al, '$'
-		je end_cycle_stack		
-		stosw	
-		jmp print_cycle_stack
+		je end_print_loop		
+		mov es:[bx], ax
+		add bx, 2	
+		jmp print_loop
 
-	end_cycle_stack:
-		;push cx
-
+	end_print_loop:
 		pop bp
+
 		ret			
-print_msg_from_stack	endp
+print_message	endp
 ;--------------------------------------------------------------------------
+
+
+print_message_from_stack proc gorizontal_offset, vertical_offset
+		mov cx, bp
+		mov bp, sp
+
+		pop dx		
+		push cx dx
+
+		mov ax, [bp + 2]	; gorizontal_offset 
+		mov cx, [bp + 4]	; vertical_offset
+		call offset_calculate
+		mov bx, ax
+		pop dx cx		
+
+		add sp, 2 * 2	
+
+	print_loop_stack:
+		pop ax
+		mov ah, color			
+	        cmp al, '$'
+		je end_loop_stack		
+		mov es:[bx], ax
+		add bx, 2
+		jmp print_loop_stack
+
+	end_loop_stack:
+		mov bp, cx
+		push dx
+
+		ret
+
+print_message_from_stack endp
 
 
 
 ;--------------------------------------------------------------------------
 ;---------------------------Itoa-------------------------------------------
-;---------- !!! trash list: cx, dx !!! ------------------------------------
+;---------- !!! trash list: ax, bx, cx, dx !!! ----------------------------
 
-itoa proc
+itoa proc system_to_convert, number
+		;mov di, bp
+		mov bp, sp	
+		
+		mov ax, [bp + 4]		; number
+		mov bx, [bp + 2]		; system_to_convert 
+
 		pop cx
+		push '$'		
+
 itoa_loop:	cmp ax, 0000h
 		je end_func
 		
@@ -349,34 +427,20 @@ itoa_loop:	cmp ax, 0000h
 		jbe is_a_digit
 
 		add dx, 'A' - '9' - 1
-
+		
 	is_a_digit:
 		push dx
 		jmp itoa_loop
 
-	end_func:
+	end_func:	
 		push cx
+		;mov bp, di
+
 		ret
 itoa endp
 ;--------------------------------------------------------------------------
 
-
-
 ;--------------------------------------------------------------------------
-;-------------------Print regs' values-------------------------------------
-;---------- !!! trash list: !!! ------------------------------------
-print_regs proc
-		;mov ah, 13h
-		;mov cx, 2
-		;mov bl, color_regs
-
-		push offset reg_ax
-		call print_msg_from_stack
-
-		ret
-print_regs endp
-;--------------------------------------------------------------------------
-
 
 return_last_interrupt_handler proc
 		;in al, 61h  		; достали символ
@@ -398,12 +462,16 @@ return_last_interrupt_handler endp
 ;----------------------------Vars-----------------------------------------		    
 .data
 
-reg_ax		db 'ax', '$'
-reg_bx		db 'bx$'
-reg_cx		db 'cx$'
+register_ax		db 'ax', '$'
+register_bx		db 'bx$'
+register_cx		db 'cx$'
 msg 		db 'R~a~s~-~r~a~s~-~r~a~s~p~u~t~i~n~ ~l~o~v~e~r~ ~o~f~ ~t~h~e~ ~R~u~s~s~i~a~n~ ~q~u~e~e~n$'
-reg_dx		db 'dx$'
+register_dx		db 'dx$'
 
+
+x_left		dw 60
+y_left		dw 3
+ 	
 is_first_line_drawn db false
 ;-------------------------------------------------------------------------
                    
