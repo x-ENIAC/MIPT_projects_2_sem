@@ -3,57 +3,41 @@
 .model tiny
 .code
 org 100h
-
-;------------------------------------------------------------------------
-;---------------Macro----------------------------------------------------
-save macro registers
-		irp reg, <registers>
-			push reg
-		endm
-endm
-
-restore macro registers
-		irp reg, <registers>
-			pop reg
-		endm
-endm
-
-do_code macro your_code
-		local do_nothing
-
-		cmp drawn_first_rect, true
-		je do_nothing
-
-		your_code
-
-	do_nothing:	
-		nop
-endm		
-
-;-------------------------------------------------------------------------
-           
+          
 
            
 ;---------------Constants--------------------------------------------------
 
 videoseg	= 0b800h
 color		= 0Eh
-count_rect	= 3
+color_regs	= 0Eh
+count_rect	= 2
 
 number		= 3802
+width_frame	equ 30
+height_frame	equ 8
 
-true		= 1
-false		= 0
+symbols_into_line equ 160
+two_bytes	equ 2
+max_symbols_into_regs	equ 4
 
-short_delay	= 64
+binary_system		equ 2
+octal_system		equ 8
+decimal_system		equ 10
+hexadecimal_system	equ 16
 
-horizontal_char	= 0ecdh		; =
-vertical_char   = 0ebah     	; ¦
-up_right_corner	= 0ebbh		; ¬
-up_left_corner	= 0ec9h		; ã
-dn_right_corner = 0ebch         ; -
-dn_left_corner	= 0ec8h        	; L
-space		= 0e00h
+horizontal_delta_offset	equ 14
+vertical_delta_offset	equ 2
+
+horizontal_char	equ 0ecdh		; =
+vertical_char   equ 0ebah     	; ¦
+up_right_corner	equ 0ebbh		; ¬
+up_left_corner	equ 0ec9h		; a
+dn_right_corner equ 0ebch         ; -
+dn_left_corner	equ 0ec8h        	; L
+shadow_char	equ 4eB0h
+space		equ 0e00h
+background	equ 1e00h
 ;--------------------------------------------------------------------------
 		
 
@@ -62,305 +46,56 @@ space		= 0e00h
 ;---------------------begin the program------------------------------------
 ;---------- !!! trash list: ax, es, cx, di, si !!! ------------------------
 
-Start:		mov ax, videoseg
-		mov es, ax 
+Start:		mov di, videoseg
+		mov es, di
 
-;-----------------------begin draw-----------------------------------------
-		
-		mov cx, count_rect
-rects:
-		push cx		
-		call offset_calculate       ; write into ax
+		call draw_frame	
 
-		mov di, ax
-		mov is_first_central_line, false	
-		call draw_rect
-		do_code <call draw_shadow>
-
-		pop cx
-
-		sub x_left, 2
-		sub y_left, 2
-		add x_right, 2
-		sub y_right, 1
-
-		mov drawn_first_rect, true
-
-		loop rects
-
-;---------------begin the program------------------------------------------
-		inc x_left
-		mov si, offset decimal		
-		call print_msg         			; print "Decimal:"                       
-
-		mov ax, number
-		mov bx, 10
-		push '$'
-		call itoa
-		call print_msg_from_stack		; Decimal number
-		                                                            
-		add y_left, 2		                                    
-		mov si, offset hexadecimal		                    
-		call print_msg          		; print "Hexadecimal:"
-
-		mov ax, number
-		mov bx, 16
-		push '$'
-		call itoa
-		call print_msg_from_stack     		; Hexadecimal number
-
-		add y_left, 2		                                    
-		mov si, offset octal		                    
-		call print_msg          		; print "Octal:"
-
-		mov ax, number
-		mov bx, 8
-		push '$'
-		call itoa
-		call print_msg_from_stack     		; Octal number                              
-		           		                                    
-		add y_left, 2
-		mov si, offset binary	                            
-		call print_msg			 	; Binary:			                    
-
-		mov ax, number
-		mov bx, 2
-		push '$'
-		call itoa
-		call print_msg_from_stack     		; Binary number
-		                                                            
-;---------------end the program--------------------------------------------
 		mov ax, 4c00h
 		int 21h
 ;--------------------------------------------------------------------------		
-
+                                                                          		
 
 
 ;------------------------------------------------------------------—-------
-;--------------calculate offset----------------------------------—---------
+;-------------------calculate offset-----------------------------—---------
 ;-------------- !!! trash list: ax, bx !!! --------------------------------
 	
-offset_calculate proc
-		mov ax, y_left
-		mov bx, symbols_into_line
-		mul bx     
-		add ax, x_left
+offset_calculate proc 
+		push bx
+		
 		mov bx, two_bytes
 		mul bx
+
+		mov bx, ax
+		mov ax, cx
+
+		mov cx, symbols_into_line
+		mul cx
+		  
+		add ax, bx
+		pop bx
+
 		ret
 offset_calculate endp		
-;------------------------------------------------------------------—-------		
-
-
-
 ;------------------------------------------------------------------—-------
-;------------------------draw rect-----------------------------------------
-;---------- !!! trash list: ax, bl, dx, cx !!! ----------------------------
-	   
-draw_rect proc
-;---------------draw first line-------------------------------------—------
-		mov ax, up_left_corner
-		mov bl, 0 ; flag of the draw first line
-		call draw_up_and_down_line
-		mov bl, true
-
-		mov ax, space
-		stosw		
-
-;---------------draw all central lines-------------------------------—-----  
-		mov dx, y_right
-		sub dx, y_left
-		sub dx, 1
-
-		mov cx, dx       
-my_loop:
-		mov dx, cx
-		call draw_central_line		
-		mov cx, dx
-		mov is_first_central_line, true		
-
-		loop my_loop
-
-;---------------draw last line-----------------------------------------—---
-                mov cx, symbols_into_line ; 80 - (x_right - x_left) - 2
-   		sub cx, x_right
-   		add cx, x_left
-   		sub cx, 3
-   		add cx, drawn_first_rect   ; made so that the frame doesn't move
-   					   ; in the absence of a shadow 		
-		mov ax, space
-
-print_probel:	stosw
-		save <dx, cx, ax>
-		call delay
-		restore <ax, cx, dx>
-		loop print_probel
-
-		mov ax, dn_left_corner
-		call draw_up_and_down_line
-
-		do_code<mov ax, 4eB0h>
-		do_code<stosw>              		                                          		
-
-		ret
-draw_rect endp
-;--------------------------------------------------------------------------		
-
-
-
-;-------------------------------------------------------------------—------
-;---------------draw up and down line------------------------------—-------
-;---------- !!! trash list: cx, ax, bl !!! --------------------------------
-
-draw_up_and_down_line proc
-
-		stosw
-
-		mov cx, x_right
-		sub cx, x_left
-		mov ax, horizontal_char
-			
-	lopa:	stosw ; mov es:[di], ax + inc ax
-		save <dx, cx, ax>
-		call delay
-		restore <ax, cx, dx>
-		loop lopa
 		
-		mov ax, up_right_corner
-			
-		cmp bl, true
-		jne draw_first_line                                      
-		mov ax, dn_right_corner
-		mov bl, true
-
-		stosw
-		;mov ax, 4eB0h
-		;stosw
-
-		ret
-		
-	draw_first_line:
-		inc cx
-		stosw
-		save <dx, cx, ax>
-		call delay
-		restore <ax, cx, dx>
-						
-		ret
-
-draw_up_and_down_line endp
-;--------------------------------------------------------------------------
-
-
-
-;-------------------------------------------------------------------—------
-;---------------draw central lines----------------------------------—------
-;-------------- !!! trash list: cx, ax !!! --------------------------------
-
-draw_central_line proc                                      
-                mov cx, symbols_into_line ; 80 - (x_right - x_left) - 2
-   		sub cx, x_right
-   		add cx, x_left
-   		sub cx, 3
-   		
-   		cmp drawn_first_rect, true
-   		jne not_remove_offset_for_shadow
-
-		cmp is_first_central_line, false
-		je not_remove_offset_for_shadow
-
-		add cx, 1
-
-            not_remove_offset_for_shadow: 
-		mov ax, space
-		
-print_probels:	stosw
-		save <dx, cx, ax>
-		call delay
-		restore <ax, cx, dx>
-		loop print_probels		
-		
-		mov ax, vertical_char
-		stosw
-		
-		mov cx, x_right
-		sub cx, x_left
-		mov ax, space
-		
-lopa_2: 	stosw
-		save <dx, cx, ax>
-		call delay
-		restore <ax, cx, dx>
-		loop lopa_2
-		
-		mov ax, vertical_char
-		stosw
-
-		save <dx, cx, ax>
-		call delay
-		restore <ax, cx, dx>
-
-		do_code<mov ax, 4eB0h>
-		do_code<stosw>
-				
-		ret
-draw_central_line endp
-;-------------------------------------------------------------------—------
-
-
-
-;--------------------------------------------------------------------------
-;----------------------draw the shadow-------------------------------------
-;---------- !!! trash list: !!! --------------------------------
-
-draw_shadow proc 
-		add di, symbols_into_line
-		add di, symbols_into_line
-		sub di, x_right
-		sub di, x_right
-		add di, x_left
-		add di, x_left
-
-		push ax 
-		mov ax, di
-		shr di, 1
-		shl di, 1
-		cmp di, ax
-	 
-		je draw_from_this_place
-
-		add di, 1
-                		
-	draw_from_this_place:
-		;pop bx
-		;pop di
-		pop ax
-				
-		mov cx, x_right
-		sub cx, x_left
-		mov ax, 4eB0h
-
-	loop_draw_shadow:		
-		mov es:[di], ax
-		add di, 2
-		loop loop_draw_shadow
-
-		ret
-		
-draw_shadow endp
-;--------------------------------------------------------------------------
 
 
 
 ;--------------------------------------------------------------------------
 ;---------------------------delay------------------------------------------
-;---------- !!! trash list: dx, cx, ah !!! --------------------------------
-;---------- dx = delay (into mircoseconds) --------------------------------
+;---------- !!! trash list: dx, cx, ah !!! -------------------------------- 
+
 delay 	proc     
-		mov dx, short_delay
+		push cx dx ax
+
+		mov dx, 64h
 		xor cx, cx
 		mov ah, 86h
 		int 15h
+
+		pop ax dx cx
           
 		ret
 
@@ -369,74 +104,418 @@ delay endp
 
 
 
+;------------------------------------------------------------------—-------
+;-------------draw frame with values of registers----------------—---------
+;------------- !!! trash list: si, es, ds, di !!! -------------------------
+
+draw_frame proc
+		push ax bx cx dx
+
+	;-----------draw rectangle---------------		
+
+		push y_left x_left width_frame height_frame				
+		call draw_rect
+		add sp, 4 * 2
+
+		push y_left x_left width_frame height_frame
+		call draw_shadow
+		add sp, 4 * 2
+
+		add x_left, 2
+
+		call print_numbers		
+
+		pop dx cx bx ax
+
+		ret
+draw_frame endp	
+;------------------------------------------------------------------—-------
+
+
+
+;------------------------------------------------------------------—-------
+;------------------------draw rect-----------------------------------------
+;-------------- !!! trash list: ax, dx, cx !!! ----------------------------
+	   
+draw_rect proc the_height, the_width, horizontal_offset, vertical_offset
+		push bp
+		mov bp, sp
+
+		mov bx, videoseg
+		mov es, bx
+
+		push vertical_offset
+		push horizontal_offset
+		push the_width		
+		push up_right_corner 
+		push horizontal_char
+		push up_left_corner 				
+		call draw_line
+		add sp, 6 * 2		
+		
+		mov cx, the_height
+
+	draw_central_lines:
+		inc vertical_offset
+
+		push cx
+
+		push vertical_offset
+		push horizontal_offset
+		push the_width		
+		push vertical_char 
+		push space
+		push vertical_char
+		call draw_line
+		add sp, 6 * 2		
+
+		pop cx
+
+		loop draw_central_lines
+
+		push vertical_offset
+		push horizontal_offset
+		push the_width		
+		push dn_right_corner
+		push horizontal_char
+		push dn_left_corner
+		call draw_line
+		add sp, 6 * 2		
+
+		pop bp
+
+		ret 
+draw_rect endp
 ;--------------------------------------------------------------------------
-;-------------------------print msg----------------------------------------
-;---------- !!! trash list: ax, bx, di !!! --------------------------------
 
-print_msg	proc		
- 		
-		mov ax, y_left
-		add ax, 3
-		mov bx, symbols_into_line  
-		mul bx
-		add ax, x_left 
-		add ax, 3
-		mov bx, 2
-		mul bx
 
-		mov di, ax
+draw_shadow proc the_height, the_width, horizontal_offset, vertical_offset
+		push bp
+		mov bp, sp
+		
+		push ax cx
 
-		mov ah, color
-		xor al, al
+		mov ax, horizontal_offset
+		add ax, the_width		
+		mov cx, vertical_offset
+		add cx, 1
+		call offset_calculate
 
-	print_msg_loop:
-		lodsb
-		cmp al, '$'
-		je end_print_msg		
-		stosw	
-		jmp print_msg_loop
+		mov bx, ax
 
-	end_print_msg:
-		ret			
-print_msg	endp
+		pop cx ax
+
+		mov cx, the_height
+		mov ax, shadow_char
+
+	draw_vertical_shadow:		
+		
+		call put_symbol
+		call go_to_next_line
+		call delay
+		loop draw_vertical_shadow
+
+		mov cx, the_width
+
+	draw_horizontal_shadow:
+
+        	call put_symbol    
+        	call go_back
+        	call delay
+        	loop draw_horizontal_shadow
+
+		pop bp
+
+		ret
+draw_shadow endp		
+
+
+
+;-------------------------------------------------------------------—------
+;------------------------draw line---------------------------------—-------
+;-------------- !!! trash list: cx, ax !!! --------------------------------
+
+draw_line proc left_symbol, central_symbol, right_symbol, the_length, goriz_offset, vertical_offset
+
+		push bp
+		mov bp, sp
+
+		push ax cx
+
+		mov ax, goriz_offset 
+		mov cx, vertical_offset
+		call offset_calculate
+
+		mov bx, ax
+
+		pop cx ax
+
+		mov ax, left_symbol
+		call put_symbol
+		call go_forward
+		call delay	
+		
+		mov cx, the_length
+		sub cx, 2
+
+		mov ax, central_symbol 
+
+	draw_the_middle:
+		call put_symbol
+		call go_forward
+		call delay		
+		loop draw_the_middle
+
+		mov ax, right_symbol
+		call put_symbol
+		call go_forward
+		call delay
+		
+		pop bp	
+	         						
+		ret
+
+draw_line endp
+;-------------------------------------------------------------------------- 
+
+
 ;--------------------------------------------------------------------------
+;---------print numbers in different systems-------------------------------
+;---------- !!! trash list: ax, es, cx, di, si !!! ------------------------
 
+print_numbers proc
+	;----------- decimal ---------------------		
 
+		add y_left, 1
+		push y_left x_left offset decimal
+		call print_message_from_variable
+		add sp, 3 * 2
+
+	        add x_left, horizontal_delta_offset	        
+	        push number decimal_system
+	        mov di, bx	   
+	        call itoa
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2
+	        sub x_left, horizontal_delta_offset
+
+	;----------- binary ---------------------
+
+		add y_left, vertical_delta_offset
+		push y_left x_left offset binary
+		call print_message_from_variable
+		add sp, 3 * 2
+
+	        add x_left, horizontal_delta_offset       
+	        push number binary_system
+	        mov di, bx	   
+	        call itoa
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2
+	        sub x_left, horizontal_delta_offset
+
+	;----------- octal ----------------------		
+
+		add y_left, vertical_delta_offset
+		push y_left x_left offset octal
+		call print_message_from_variable
+		add sp, 3 * 2
+
+	        add x_left, horizontal_delta_offset	        
+	        push number octal_system
+	        mov di, bx	   
+	        call itoa
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2
+	        sub x_left, horizontal_delta_offset
+	        
+
+	;----------- hexadecimal ----------------		
+
+		add y_left, vertical_delta_offset
+		push y_left x_left offset hexadecimal
+		call print_message_from_variable
+		add sp, 3 * 2
+
+	        add x_left, horizontal_delta_offset	        
+	        push number decimal_system
+	        mov di, bx	   
+	        call itoa
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2
+	        sub x_left, horizontal_delta_offset
+	        
+		ret
+		
+print_numbers endp
+;--------------------------------------------------------------------------  
+		
+	                                                     
 
 ;--------------------------------------------------------------------------
-;-------------------print msg from stack-----------------------------------
+;-------------------print symbol variable----------------------------------
 ;---------- !!! trash list: ax, bx, cx, di !!! ----------------------------
 
-print_msg_from_stack	proc
-		pop cx
-		xor ax, ax
+print_message_from_variable proc message_offset, gorizontal_offset, vertical_offset 
+		push bp
+		mov bp, sp
 
-	push_into_stack:
-		pop ax
+		push ax cx
+
+		mov ax, gorizontal_offset 
+		mov cx, vertical_offset
+		call offset_calculate
+		mov bx, ax
+
+		pop cx ax	
+
+		mov si, message_offset
 		mov ah, color
-	        cmp al, '$'
-		je end_push_into_stack
-				
-		stosw	
-		jmp push_into_stack
 
-	end_push_into_stack:
-		push cx
+		cld	
+
+	print_loop:
+		lodsb		
+	        cmp al, '$'
+		je end_print_loop
+				
+		call put_symbol
+		call go_forward
+		call delay
+		jmp print_loop
+
+	end_print_loop:
+		pop bp
+
 		ret			
-print_msg_from_stack	endp
+print_message_from_variable	endp
 ;--------------------------------------------------------------------------
+
+
+
+;--------------------------------------------------------------------------
+;------------------put symbol into es:[bx]---------------------------------
+;-------------- !!! trash list: nothing... !!! ----------------------------
+
+put_symbol proc
+
+		mov es:[bx], ax
+		ret
+
+put_symbol endp
+;--------------------------------------------------------------------------
+
+
+
+;--------------------------------------------------------------------------
+;-------------adds to bx 2 (needs to put symbol)---------------------------
+;------------------- !!! trash list: bx !!! -------------------------------
+
+go_forward proc
+		add bx, 2
+		ret
+go_forward endp
+;--------------------------------------------------------------------------
+                           
+
+
+;--------------------------------------------------------------------------
+;-------------subs to bx 2 (needs to put symbol)---------------------------
+;------------------- !!! trash list: bx !!! -------------------------------
+
+go_back proc
+		sub bx, 2
+		ret
+go_back endp
+;--------------------------------------------------------------------------
+
+
+
+;--------------------------------------------------------------------------
+;-------------adds to bx 160 (needs to put symbol)-------------------------
+;------------------- !!! trash list: bx !!! -------------------------------
+
+go_to_next_line proc
+		add bx, symbols_into_line
+		ret
+go_to_next_line endp
+;--------------------------------------------------------------------------
+
+
+print_message_from_stack proc gorizontal_offset, vertical_offset
+		mov cx, bp
+		mov bp, sp
+
+		pop dx		
+		push cx dx
+
+		mov ax, [bp + 2]	; gorizontal_offset 
+		mov cx, [bp + 4]	; vertical_offset
+		call offset_calculate
+		mov bx, ax
+		pop dx cx		
+
+		add sp, 2 * 2
+
+		mov ah, color                                     		 	
+
+	print_loop_stack:
+		pop ax
+		mov ah, color			
+	        cmp al, '$'
+		je end_loop_stack
+				
+		call put_symbol
+		call go_forward
+		call delay
+		jmp print_loop_stack
+
+	end_loop_stack:
+		mov bp, cx
+		push dx
+
+		ret
+
+print_message_from_stack endp
 
 
 
 ;--------------------------------------------------------------------------
 ;---------------------------Itoa-------------------------------------------
-;---------- !!! trash list: cx, dx !!! ------------------------------------
+;---------- !!! trash list: ax, bx, cx, dx !!! ----------------------------
 
-itoa proc
+itoa proc system_to_convert, number
+		mov copy_bp_for_itoa, bp
+		mov bp, sp	
+		
+		mov ax, [bp + 4]		; number
+		mov bx, [bp + 2]		; system_to_convert 
+
 		pop cx
-itoa_loop:	cmp ax, 0000h
-		je end_func
+		push '$'
 
+		cmp ax, 0000h
+		jne itoa_loop
+
+		push '0'
+		jmp end_itoa_func
+
+	itoa_loop:	
+		cmp ax, 0000h
+		je end_itoa_func
+		
 		mov dx, 0000h
 		div bx
 		add dx, '0'
@@ -445,38 +524,33 @@ itoa_loop:	cmp ax, 0000h
 		jbe is_a_digit
 
 		add dx, 'A' - '9' - 1
-
+		
 	is_a_digit:
 		push dx
 		jmp itoa_loop
 
-	end_func:
+	end_itoa_func:	
 		push cx
+
+		mov bp, copy_bp_for_itoa
+
 		ret
 itoa endp
 ;--------------------------------------------------------------------------
-
 		
 
 ;-------------------------------------------------------------------------
 ;----------------------------Vars-----------------------------------------		    
 .data
-msg			db 'Hello$'
-
-x_left			dw 23 
-x_right 		dw 47
-y_left			dw 14             
-y_right			dw 22
-symbols_into_line	dw 80
-two_bytes		dw 2
-count_lines		dw 7
-drawn_first_rect 	dw 0	; 0 - not drawn, 1 - drawn
-is_first_central_line 	dw 0
+x_left			dw 25
+y_left			dw 10
 
 decimal			db 'Decimal: $'
 hexadecimal		db 'Hexadecimal: $'
 octal			db 'Octal: $'
 binary			db 'Binary: $'
+
+copy_bp_for_itoa	dw 0
 ;-------------------------------------------------------------------------
 
 
