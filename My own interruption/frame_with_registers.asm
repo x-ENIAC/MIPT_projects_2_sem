@@ -2,19 +2,7 @@
 .code
 
 org 100h
-
-save macro registers
-	irp reg, <registers>
-		push reg
-	endm
-endm
-
-restore macro registers
-	irp reg, <registers>
-		pop reg
-	endm
-endm
-
+        
 ;--------------------------------------------------------------------------
 videoseg	= 0b800h
 color		= 0Eh
@@ -28,9 +16,10 @@ height_frame	equ 8
 symbols_into_line equ 160
 two_bytes	equ 2
 max_symbols_into_regs	equ 4
+                   
 
-true		= 1
-false		= 0
+hexadecimal	equ 16
+decimal		equ 10
 
 horizontal_char	equ 0ecdh		; =
 vertical_char   equ 0ebah     	; ¶
@@ -56,16 +45,16 @@ Next:		;in al, 60h                 -------------
 		;cmp al, 1
 		;jne Next 	------------
 
-		;mov bx, 0
-		;mov es, bx		; сегмент, равный нулю (будем адресоватьс€ к таблице прерываний)
-		;mov bx, 9 * 4		; 9 - номер прерывани€, 4 - размер €чейки
-		;mov ax, es:[bx]
-		;mov Old09_ofs, ax	; старый адрес
-		;mov ax, es:[bx+2]	; старша€ часть адреса
-		;mov Old09_seg, ax	; 
+		mov bx, 0
+		mov es, bx		; сегмент, равный нулю (будем адресоватьс€ к таблице прерываний)
+		mov bx, 9 * 4		; 9 - номер прерывани€, 4 - размер €чейки
+		mov ax, es:[bx]
+		mov Old09_ofs, ax	; старый адрес
+		mov ax, es:[bx+2]	; старша€ часть адреса
+		mov Old09_seg, ax	; 
 
-		call New09
-		ret
+		;call New09
+		;ret
 
 		;----------------- работа с таблицей прерываний ---------------------
 		cli			; запрещаем прерывани€, чтобы помен€ть сегмент и смещение
@@ -74,61 +63,55 @@ Next:		;in al, 60h                 -------------
 		mov es:[bx+2], ax       	; кладЄм сегмент
 		sti			; разрешаем прерывани€
 
-		;mov ax, 4c00h		; 4c - освобождает пам€ть после завершени€ - будет сущий кошмар
+		mov ax, 4c00h		; 4c - освобождает пам€ть после завершени€ - будет сущий кошмар
 					; (адрес-то останетс€, а его содержимое помен€етс€)
 		mov ax, 3100h		; Terminate 
-		mov dx, offset EndProgram	; Memory size - в параграфах - сколько проге нужно пам€ти (1 пар. = 16 байт)		
+		mov dx, 0ffffh			; offset EndProgram	; Memory size - в параграфах - сколько проге нужно пам€ти (1 пар. = 16 байт)		
 		shr dx, 4		; делим на 16
 		inc dx			; адрес может не нацело делитьс€ 
                 int 21h
 
+	close_program:
+	                
                 mov ax, 4c00h
                 int 21h
 ;------------------------------------------------------------------Ч-------
                 
 
 New09	proc
-		;push es di ax
+		push ax bx cx dx di ds es si		
+
+		mov di, videoseg
+		mov es, di
+		mov di, (80 + 40) * 2	; (80 + 40) * 2
+		mov ah, 4eh
+
+		in al, 60h   		; read symbol from controller
+		mov es:[di], ax
 		
-		;mov di, videoseg
-		;mov es, di
-		;mov di, (80) * 2	; (80 + 40) * 2
-		;mov ah, 4eh
-		;in al, 60h   		; read symbol from controller
-		;mov es:[di], ax
+		cmp al, 02h		; сравниваем символ со скан-кодом 2
+		jne EOI
 		
-		;cmp al, 02h		; сравниваем символ со скан-кодом 2
-		;jne EOI
-
-		;mov es:[di+4],  ax	; если гор€ча€ клавиша, то р€дом кладем нас же
-
-		push ax bx cx dx di ds es si
-
-		mov ax, cs
+		mov es:[di+4],  ax	; если гор€ча€ клавиша, то р€дом кладем нас же
+                       
+                mov ax, cs
 		mov ds, ax
                             		
-		call draw_frame
-		pop si es ds di dx cx bx ax		
+		call draw_frame		
+		call return_last_interrupt_handler
 
-		ret
-
-		;call print_regs          
-		
-
-
-		;call return_last_interrupt_handler
-
-		;pop ax di es
+		pop si es ds di dx cx bx ax
 		iret
-		;ret
 
-EOI:		pop ax di es    	; восстановление регистров
 
-		db 0eah			; самомодифицирущийс€ код (прыжок на старый обработчик) 		
+EOI:		
+		pop si es ds di dx cx bx ax    	; восстановление регистров		
+
+		db 0eah				; самомодифицирущийс€ код (прыжок на старый обработчик) 		
 Old09_ofs	dw 0
 Old09_seg	dw 0
 		
-		;iret
+		iret
 
 New09	endp
 ;------------------------------------------------------------------Ч-------
@@ -161,6 +144,7 @@ offset_calculate endp
 
 draw_frame proc
 		push ax bx cx dx
+
 	;-----------draw rectangle---------------		
 
 		push y_left x_left width_frame height_frame				
@@ -177,7 +161,7 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push ax 16
+	        push ax hexadecimal
 	        mov di, bx	   
 	        call itoa
 
@@ -196,7 +180,7 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push bx 16
+	        push bx hexadecimal
 	        mov di, bx	   
 	        call itoa
 
@@ -214,7 +198,7 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push cx 16
+	        push cx hexadecimal
 	        mov di, bx	   
 	        call itoa
 
@@ -232,7 +216,7 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push dx 16
+	        push dx hexadecimal
 	        mov di, bx	   
 	        call itoa
 
@@ -240,6 +224,12 @@ draw_frame proc
 	        push y_left x_left
 	        call print_message_from_stack
 	        add sp, 2 * 2 
+	        sub x_left, 3
+
+	        sub y_left, 2 * 4
+
+	        sub x_left, 2
+	        add y_left, 1
 
 		pop dx cx bx ax
 
@@ -347,24 +337,7 @@ draw_line proc left_symbol, central_symbol, right_symbol, the_length, goriz_offs
 		ret
 
 draw_line endp
-;--------------------------------------------------------------------------
-
-
-                                                                       
-;--------------------------------------------------------------------------
-;---------------------------delay------------------------------------------
-;---------- !!! trash list: dx, cx, ah !!! --------------------------------
-
-delay 	proc     
-		;mov dx, 64	;3EBh	;0BB8h
-		;xor cx, cx
-		;mov ah, 86h
-		;int 15h
-          
-		ret
-
-delay endp
-;--------------------------------------------------------------------------
+;-------------------------------------------------------------------------- 
 
                                                       
 
@@ -460,7 +433,7 @@ print_message_from_stack endp
 
 itoa proc system_to_convert, number
 		mov length_number_into_itoa, 0
-		;mov di, bp
+		mov copy_bp_for_itoa, bp
 		mov bp, sp	
 		
 		mov ax, [bp + 4]		; number
@@ -473,7 +446,7 @@ itoa proc system_to_convert, number
 		jne itoa_loop
 
 		push '0'
-		mov length_number_into_itoa, 1		
+		inc length_number_into_itoa
 		jmp end_itoa_func
 
 	itoa_loop:	
@@ -491,13 +464,14 @@ itoa proc system_to_convert, number
 		
 	is_a_digit:
 		push dx
-		add length_number_into_itoa, 1
+		inc length_number_into_itoa
 		jmp itoa_loop
 
 	end_itoa_func:	
 		push length_number_into_itoa
 		push cx
-		;mov bp, di
+
+		mov bp, copy_bp_for_itoa
 
 		ret
 itoa endp
@@ -506,8 +480,8 @@ itoa endp
 ;--------------------------------------------------------------------------
 
 return_last_interrupt_handler proc
-		;in al, 61h  		; достали символ
-		;mov ah, al
+		in al, 61h  		; got the symbol
+		mov ah, al
 
 		or al, 80h 		; put the most significant bit
 		out 61h, al 		; put symbol
@@ -534,10 +508,9 @@ register_dx		db 'dx$'
 length_number_into_itoa	dw 0
 
 
-x_left		dw 60
-y_left		dw 3
- 	
-is_first_line_drawn db false
+x_left			dw 68
+y_left			dw 3
+copy_bp_for_itoa	dw 0
 ;-------------------------------------------------------------------------
                    
             
