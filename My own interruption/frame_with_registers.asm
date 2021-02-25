@@ -22,11 +22,12 @@ color_regs	= 0Eh
 count_rect	= 2
 
 number		= 3802
-width_frame	equ 9
-height_frame	equ 9
+width_frame	equ 11
+height_frame	equ 8
 
 symbols_into_line equ 160
 two_bytes	equ 2
+max_symbols_into_regs	equ 4
 
 true		= 1
 false		= 0
@@ -160,31 +161,70 @@ offset_calculate endp
 
 draw_frame proc
 		push ax bx cx dx
+	;-----------draw rectangle---------------		
 
-		push y_left
-		push x_left
-		push width_frame
-		push height_frame		
-
+		push y_left x_left width_frame height_frame				
 		call draw_rect
 		add sp, 4 * 2
 
 		add x_left, 2
+
+	;-----------print ax---------------------		
 
 		add y_left, 1
 		push y_left x_left offset register_ax
 		call print_message
 		add sp, 3 * 2
 
+	        add x_left, 3	        
+	        push ax 16
+	        mov di, bx	   
+	        call itoa
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2
+	        sub x_left, 3
+		
+
+	;-----------print bx---------------------
+			
 		add y_left, 2
 		push y_left x_left offset register_bx
 		call print_message
 		add sp, 3 * 2
 
+	        add x_left, 3	        
+	        push bx 16
+	        mov di, bx	   
+	        call itoa
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2
+	        sub x_left, 3
+		
+	;-----------print cx---------------------		
+
 		add y_left, 2
 		push y_left x_left offset register_cx
 		call print_message
 		add sp, 3 * 2
+
+	        add x_left, 3	        
+	        push cx 16
+	        mov di, bx	   
+	        call itoa
+
+	        mov bx, di
+	        push y_left x_left
+	        call print_message_from_stack
+	        add sp, 2 * 2
+	        sub x_left, 3
+	
+	;-----------print dx---------------------		
 		                   
 		add y_left, 2
 		push y_left x_left offset register_dx
@@ -192,10 +232,9 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push 20 16
+	        push dx 16
 	        mov di, bx	   
 	        call itoa
-	        ;add sp, 2 * 2
 
 	        mov bx, di
 	        push y_left x_left
@@ -229,7 +268,7 @@ draw_rect proc the_height, the_width, horizontal_offset, vertical_offset
 		call draw_line
 		add sp, 6 * 2		
 		
-		mov cx, the_width
+		mov cx, the_height
 
 	draw_central_lines:
 		inc vertical_offset
@@ -381,7 +420,20 @@ print_message_from_stack proc gorizontal_offset, vertical_offset
 		mov bx, ax
 		pop dx cx		
 
-		add sp, 2 * 2	
+		add sp, 2 * 2
+
+		pop length_number_into_itoa
+
+		mov ah, color
+
+	padding_by_zeroes:
+		cmp length_number_into_itoa, max_symbols_into_regs
+		jae print_loop_stack
+		mov al, '0'
+		mov es:[bx], ax
+		add bx, 2
+		add length_number_into_itoa, 1
+		jmp padding_by_zeroes		 	
 
 	print_loop_stack:
 		pop ax
@@ -407,6 +459,7 @@ print_message_from_stack endp
 ;---------- !!! trash list: ax, bx, cx, dx !!! ----------------------------
 
 itoa proc system_to_convert, number
+		mov length_number_into_itoa, 0
 		;mov di, bp
 		mov bp, sp	
 		
@@ -414,10 +467,18 @@ itoa proc system_to_convert, number
 		mov bx, [bp + 2]		; system_to_convert 
 
 		pop cx
-		push '$'		
+		push '$'
 
-itoa_loop:	cmp ax, 0000h
-		je end_func
+		cmp ax, 0000h
+		jne itoa_loop
+
+		push '0'
+		mov length_number_into_itoa, 1		
+		jmp end_itoa_func
+
+	itoa_loop:	
+		cmp ax, 0000h
+		je end_itoa_func
 		
 		mov dx, 0000h
 		div bx
@@ -430,9 +491,11 @@ itoa_loop:	cmp ax, 0000h
 		
 	is_a_digit:
 		push dx
+		add length_number_into_itoa, 1
 		jmp itoa_loop
 
-	end_func:	
+	end_itoa_func:	
+		push length_number_into_itoa
 		push cx
 		;mov bp, di
 
@@ -467,6 +530,8 @@ register_bx		db 'bx$'
 register_cx		db 'cx$'
 msg 		db 'R~a~s~-~r~a~s~-~r~a~s~p~u~t~i~n~ ~l~o~v~e~r~ ~o~f~ ~t~h~e~ ~R~u~s~s~i~a~n~ ~q~u~e~e~n$'
 register_dx		db 'dx$'
+
+length_number_into_itoa	dw 0
 
 
 x_left		dw 60
