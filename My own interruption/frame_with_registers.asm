@@ -16,10 +16,11 @@ height_frame	equ 8
 symbols_into_line equ 160
 two_bytes	equ 2
 max_symbols_into_regs	equ 4
-                   
 
-hexadecimal	equ 16
-decimal		equ 10
+binary_system		equ 2
+octal_system		equ 8
+decimal_system		equ 10
+hexadecimal_system	equ 16
 
 horizontal_char	equ 0ecdh		; =
 vertical_char   equ 0ebah     	; ¶
@@ -32,20 +33,7 @@ space		equ 0e00h
 
 
 
-Start:		mov ax, 0b800h
-		mov es, ax
-		mov di, 80 * 2
-		mov ah, 4eh
-		
-		;cld			; clear destination flag 
-				
-Next:		;in al, 60h                 -------------
-		;stosw
-		;mov es:[di], ax
-		;cmp al, 1
-		;jne Next 	------------
-
-		mov bx, 0
+Start:		mov bx, 0
 		mov es, bx		; сегмент, равный нулю (будем адресоватьс€ к таблице прерываний)
 		mov bx, 9 * 4		; 9 - номер прерывани€, 4 - размер €чейки
 		mov ax, es:[bx]
@@ -53,22 +41,19 @@ Next:		;in al, 60h                 -------------
 		mov ax, es:[bx+2]	; старша€ часть адреса
 		mov Old09_seg, ax	; 
 
-		;call New09
+		;call New_handler_09_interrupt
 		;ret
 
-		;----------------- работа с таблицей прерываний ---------------------
-		cli			; запрещаем прерывани€, чтобы помен€ть сегмент и смещение
-		mov es:[bx], offset New09	; кладЄм смещение
-		mov ax, cs		; узнаем сегмент
-		mov es:[bx+2], ax       	; кладЄм сегмент
-		sti			; разрешаем прерывани€
-
-		mov ax, 4c00h		; 4c - освобождает пам€ть после завершени€ - будет сущий кошмар
-					; (адрес-то останетс€, а его содержимое помен€етс€)
-		mov ax, 3100h		; Terminate 
-		mov dx, 0ffffh			; offset EndProgram	; Memory size - в параграфах - сколько проге нужно пам€ти (1 пар. = 16 байт)		
-		shr dx, 4		; делим на 16
-		inc dx			; адрес может не нацело делитьс€ 
+		cli					
+		mov es:[bx], offset New_handler_09_interrupt
+		mov ax, cs				
+		mov es:[bx+2], ax       		
+		sti								
+							
+		mov ax, 3100h				
+		mov dx, offset End_program		
+		shr dx, 4				
+		inc dx					
                 int 21h
 
 	close_program:
@@ -78,7 +63,9 @@ Next:		;in al, 60h                 -------------
 ;------------------------------------------------------------------Ч-------
                 
 
-New09	proc
+
+;------------------------------------------------------------------Ч-------
+New_handler_09_interrupt proc
 		push ax bx cx dx di ds es si		
 
 		mov di, videoseg
@@ -88,12 +75,30 @@ New09	proc
 
 		in al, 60h   		; read symbol from controller
 		mov es:[di], ax
+		;mov al, 18h
 		
+		cmp al, 30h           	; Binary
+		je binary_numeral_system
+
+		cmp al, 18h           	; Octal
+		je octal_numeral_system
+
+                cmp al, 20h           	; Decimal
+		je decimal_numeral_system		
+
+		cmp al, 23h       	; Hexadecimal
+		je hexadecimal_numeral_system
+
+	continue_processing_click:		
+
 		cmp al, 02h		; сравниваем символ со скан-кодом 2
-		jne EOI
+		jne EOI		
+		
 		
 		mov es:[di+4],  ax	; если гор€ча€ клавиша, то р€дом кладем нас же
-                       
+
+
+		    
                 mov ax, cs
 		mov ds, ax
                             		
@@ -113,8 +118,25 @@ Old09_seg	dw 0
 		
 		iret
 
-New09	endp
+New_handler_09_interrupt endp
 ;------------------------------------------------------------------Ч-------
+
+binary_numeral_system:
+		mov now_numeral_system, binary_system
+		jmp continue_processing_click
+
+octal_numeral_system:
+		mov now_numeral_system, octal_system
+		jmp continue_processing_click
+
+decimal_numeral_system:
+		mov now_numeral_system, decimal_system
+		jmp continue_processing_click		
+
+hexadecimal_numeral_system:
+		mov now_numeral_system, hexadecimal_system
+		jmp continue_processing_click
+		
 
 
 
@@ -142,6 +164,11 @@ offset_calculate endp
 ;------------------------------------------------------------------Ч-------
 
 
+
+;------------------------------------------------------------------Ч-------
+;-------------draw frame with values of registers----------------Ч---------
+;------------- !!! trash list: si, es, ds, di !!! -------------------------
+
 draw_frame proc
 		push ax bx cx dx
 
@@ -157,11 +184,11 @@ draw_frame proc
 
 		add y_left, 1
 		push y_left x_left offset register_ax
-		call print_message
+		call print_message_from_variable
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push ax hexadecimal
+	        push ax now_numeral_system
 	        mov di, bx	   
 	        call itoa
 
@@ -176,11 +203,11 @@ draw_frame proc
 			
 		add y_left, 2
 		push y_left x_left offset register_bx
-		call print_message
+		call print_message_from_variable
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push bx hexadecimal
+	        push bx now_numeral_system
 	        mov di, bx	   
 	        call itoa
 
@@ -194,11 +221,11 @@ draw_frame proc
 
 		add y_left, 2
 		push y_left x_left offset register_cx
-		call print_message
+		call print_message_from_variable
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push cx hexadecimal
+	        push cx now_numeral_system
 	        mov di, bx	   
 	        call itoa
 
@@ -212,11 +239,11 @@ draw_frame proc
 		                   
 		add y_left, 2
 		push y_left x_left offset register_dx
-		call print_message
+		call print_message_from_variable
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push dx hexadecimal
+	        push dx now_numeral_system
 	        mov di, bx	   
 	        call itoa
 
@@ -235,6 +262,7 @@ draw_frame proc
 
 		ret
 draw_frame endp	
+;------------------------------------------------------------------Ч-------
 
 
 
@@ -345,7 +373,7 @@ draw_line endp
 ;-------------------print msg from stack-----------------------------------
 ;---------- !!! trash list: ax, bx, cx, di !!! ----------------------------
 
-print_message	proc message_offset, gorizontal_offset, vertical_offset 
+print_message_from_variable proc message_offset, gorizontal_offset, vertical_offset 
 		push bp
 		mov bp, sp
 
@@ -376,7 +404,7 @@ print_message	proc message_offset, gorizontal_offset, vertical_offset
 		pop bp
 
 		ret			
-print_message	endp
+print_message_from_variable	endp
 ;--------------------------------------------------------------------------
 
 
@@ -499,7 +527,7 @@ return_last_interrupt_handler endp
 ;----------------------------Vars-----------------------------------------		    
 .data
 
-register_ax		db 'ax', '$'
+register_ax		db 'ax$'
 register_bx		db 'bx$'
 register_cx		db 'cx$'
 msg 		db 'R~a~s~-~r~a~s~-~r~a~s~p~u~t~i~n~ ~l~o~v~e~r~ ~o~f~ ~t~h~e~ ~R~u~s~s~i~a~n~ ~q~u~e~e~n$'
@@ -511,9 +539,10 @@ length_number_into_itoa	dw 0
 x_left			dw 68
 y_left			dw 3
 copy_bp_for_itoa	dw 0
+now_numeral_system	dw 10
 ;-------------------------------------------------------------------------
                    
             
-EndProgram:	
+End_program:	
 		
 end		Start			
