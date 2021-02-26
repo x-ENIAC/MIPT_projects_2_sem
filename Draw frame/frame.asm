@@ -5,20 +5,19 @@
 org 100h
           
 
-           
+;-------------------------------------------------------------------------           
 ;---------------Constants--------------------------------------------------
 
 videoseg	= 0b800h
 color		= 0Eh
 color_regs	= 0Eh
-count_rect	= 2
 
-number		= 3802
-width_frame	equ 30
+number		equ 3802
+width_frame	equ 32
 height_frame	equ 8
 
-symbols_into_line equ 160
-two_bytes	equ 2
+symbols_into_line	 equ 160
+two_bytes		equ 2
 max_symbols_into_regs	equ 4
 
 binary_system		equ 2
@@ -50,6 +49,7 @@ Start:		mov di, videoseg
 		mov es, di
 
 		call draw_frame	
+		mov ax, 20              
 
 		mov ax, 4c00h
 		int 21h
@@ -189,6 +189,10 @@ draw_rect endp
 ;--------------------------------------------------------------------------
 
 
+
+;-------------------------------------------------------------------—------
+;------------------------draw shadow-------------------------------—-------
+
 draw_shadow proc the_height, the_width, horizontal_offset, vertical_offset
 		push bp
 		mov bp, sp
@@ -227,13 +231,13 @@ draw_shadow proc the_height, the_width, horizontal_offset, vertical_offset
 		pop bp
 
 		ret
-draw_shadow endp		
+draw_shadow endp
+;-------------------------------------------------------------------—------		
 
 
 
 ;-------------------------------------------------------------------—------
 ;------------------------draw line---------------------------------—-------
-;-------------- !!! trash list: cx, ax !!! --------------------------------
 
 draw_line proc left_symbol, central_symbol, right_symbol, the_length, goriz_offset, vertical_offset
 
@@ -279,6 +283,7 @@ draw_line endp
 ;-------------------------------------------------------------------------- 
 
 
+
 ;--------------------------------------------------------------------------
 ;---------print numbers in different systems-------------------------------
 ;---------- !!! trash list: ax, es, cx, di, si !!! ------------------------
@@ -309,16 +314,16 @@ print_numbers proc
 		call print_message_from_variable
 		add sp, 3 * 2
 
-	        add x_left, horizontal_delta_offset       
-	        push number binary_system
-	        mov di, bx	   
-	        call itoa
+	        add x_left, horizontal_delta_offset       	        
+		mov di, bx	   
+	        mov ax, number
+	        call convert_to_binary
 
 	        mov bx, di
 	        push y_left x_left
-	        call print_message_from_stack
-	        add sp, 2 * 2
+	        call print_message_from_stack	       
 	        sub x_left, horizontal_delta_offset
+	        
 
 	;----------- octal ----------------------		
 
@@ -347,7 +352,7 @@ print_numbers proc
 		add sp, 3 * 2
 
 	        add x_left, horizontal_delta_offset	        
-	        push number decimal_system
+	        push number hexadecimal_system
 	        mov di, bx	   
 	        call itoa
 
@@ -454,14 +459,18 @@ go_to_next_line endp
 ;--------------------------------------------------------------------------
 
 
-print_message_from_stack proc gorizontal_offset, vertical_offset
+
+;--------------------------------------------------------------------------
+;------takes symbols from stack and print its on screen--------------------
+
+print_message_from_stack proc horizontal_offset, vertical_offset
 		mov cx, bp
 		mov bp, sp
 
 		pop dx		
 		push cx dx
 
-		mov ax, [bp + 2]	; gorizontal_offset 
+		mov ax, [bp + 2]	; horizontal_offset 
 		mov cx, [bp + 4]	; vertical_offset
 		call offset_calculate
 		mov bx, ax
@@ -489,18 +498,19 @@ print_message_from_stack proc gorizontal_offset, vertical_offset
 		ret
 
 print_message_from_stack endp
+;-------------------------------------------------------------------—------
 
 
 
 ;--------------------------------------------------------------------------
-;---------------------------Itoa-------------------------------------------
+;--------------------converts number to string-----------------------------
 ;---------- !!! trash list: ax, bx, cx, dx !!! ----------------------------
 
-itoa proc system_to_convert, number
+itoa proc system_to_convert, the_number
 		mov copy_bp_for_itoa, bp
 		mov bp, sp	
 		
-		mov ax, [bp + 4]		; number
+		mov ax, [bp + 4]		; the_number
 		mov bx, [bp + 2]		; system_to_convert 
 
 		pop cx
@@ -537,7 +547,40 @@ itoa proc system_to_convert, number
 		ret
 itoa endp
 ;--------------------------------------------------------------------------
+
+
+
+;--------------------------------------------------------------------------
+;----------converts number to binary position------------------------------
+; ax = number
+
+convert_to_binary proc
+		mov copy_bp_for_itoa, bp
+		mov bp, sp
+
+		pop cx
+		push '$'
+
+	converting:
+		mov dx, ax
+		and dx, 0001b
+		add dx, '0'
+		push dx
+		cmp ax, 0000h
+		je end_convert
 		
+		shr ax, 1				
+		jmp converting				
+				
+	end_convert:	       
+		mov bp, copy_bp_for_itoa
+		push cx
+
+		ret	
+convert_to_binary endp
+;-------------------------------------------------------------------------
+
+
 
 ;-------------------------------------------------------------------------
 ;----------------------------Vars-----------------------------------------		    
