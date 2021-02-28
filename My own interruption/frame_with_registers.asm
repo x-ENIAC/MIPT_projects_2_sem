@@ -73,8 +73,11 @@ New_handler_09_interrupt proc
 		mov di, (80 + 40) * 2	; (80 + 40) * 2
 		mov ah, 4eh
 
+                mov ax, cs
+		mov ds, ax		
+
 		in al, 60h   		; read symbol from controller
-		mov es:[di], ax
+		;mov es:[di], ax
 				
 		;cmp al, 30h           	; Binary
 		;je binary_numeral_system
@@ -89,20 +92,15 @@ New_handler_09_interrupt proc
 		;je hexadecimal_numeral_system
 
 	continue_processing_click:
-			
-
-		cmp al, 02h		; сравниваем символ со скан-кодом 2
-		jne EOI
 
 		mov copy_ax_for_print, ax
 		mov copy_bx_for_print, bx
 		mov copy_cx_for_print, cx
-		mov copy_dx_for_print, dx				
-		
-		mov es:[di+4],  ax	; если горячая клавиша, то рядом кладем нас же		
-		    
-                mov ax, cs
-		mov ds, ax
+		mov copy_dx_for_print, dx	
+			
+
+		cmp al, 02h		; сравниваем символ со скан-кодом 2
+		jne EOI		   
                             		
 		call draw_frame		
 		call return_last_interrupt_handler
@@ -112,17 +110,17 @@ New_handler_09_interrupt proc
 		;ret
 
 
-EOI:		
+EOI:		                           
                 mov ax, cs
-		mov ds, ax
+		mov ds, ax		
+                                
+		;mov copy_ax_for_print, ax
+		;mov copy_bx_for_print, bx
+		;mov copy_cx_for_print, cx
+		;mov copy_dx_for_print, dx		
 
-		mov copy_ax_for_print, ax
-		mov copy_bx_for_print, bx
-		mov copy_cx_for_print, cx
-		mov copy_dx_for_print, dx		
-
-		call draw_frame		
-		call return_last_interrupt_handler
+		;call draw_frame		
+		;call return_last_interrupt_handler
 
 		pop si es ds di dx cx bx ax    	; восстановление регистров		
 
