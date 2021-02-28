@@ -45,7 +45,7 @@ Start:		mov bx, 0
 		;ret
 
 		cli					
-		mov es:[bx], offset New_handler_09_interrupt
+		mov word ptr es:[bx], offset New_handler_09_interrupt
 		mov ax, cs				
 		mov es:[bx+2], ax       		
 		sti								
@@ -75,29 +75,31 @@ New_handler_09_interrupt proc
 
 		in al, 60h   		; read symbol from controller
 		mov es:[di], ax
-		;mov al, 18h
-		
-		cmp al, 30h           	; Binary
-		je binary_numeral_system
+				
+		;cmp al, 30h           	; Binary
+		;je binary_numeral_system
 
-		cmp al, 18h           	; Octal
-		je octal_numeral_system
+		;cmp al, 18h           	; Octal
+		;je octal_numeral_system
 
-                cmp al, 20h           	; Decimal
-		je decimal_numeral_system		
+                ;cmp al, 20h           	; Decimal
+		;je decimal_numeral_system		
 
-		cmp al, 23h       	; Hexadecimal
-		je hexadecimal_numeral_system
+		;cmp al, 23h       	; Hexadecimal
+		;je hexadecimal_numeral_system
 
-	continue_processing_click:		
+	continue_processing_click:
+			
 
 		cmp al, 02h		; сравниваем символ со скан-кодом 2
-		jne EOI		
-		
-		
-		mov es:[di+4],  ax	; если гор€ча€ клавиша, то р€дом кладем нас же
+		jne EOI
 
-
+		mov copy_ax_for_print, ax
+		mov copy_bx_for_print, bx
+		mov copy_cx_for_print, cx
+		mov copy_dx_for_print, dx				
+		
+		mov es:[di+4],  ax	; если гор€ча€ клавиша, то р€дом кладем нас же		
 		    
                 mov ax, cs
 		mov ds, ax
@@ -107,9 +109,21 @@ New_handler_09_interrupt proc
 
 		pop si es ds di dx cx bx ax
 		iret
+		;ret
 
 
 EOI:		
+                mov ax, cs
+		mov ds, ax
+
+		mov copy_ax_for_print, ax
+		mov copy_bx_for_print, bx
+		mov copy_cx_for_print, cx
+		mov copy_dx_for_print, dx		
+
+		call draw_frame		
+		call return_last_interrupt_handler
+
 		pop si es ds di dx cx bx ax    	; восстановление регистров		
 
 		db 0eah				; самомодифицирущийс€ код (прыжок на старый обработчик) 		
@@ -185,9 +199,11 @@ draw_frame proc
 		add y_left, 1
 		push y_left x_left offset register_ax
 		call print_message_from_variable
-		add sp, 3 * 2
+		add sp, 3 * 2		
 
-	        add x_left, 3	        
+	        add x_left, 3
+       		;mov ax, 8888
+	        mov ax, copy_ax_for_print	        	        
 	        push ax now_numeral_system
 	        mov di, bx	   
 	        call itoa
@@ -196,8 +212,7 @@ draw_frame proc
 	        push y_left x_left
 	        call print_message_from_stack
 	        add sp, 2 * 2
-	        sub x_left, 3
-		
+	        sub x_left, 3		
 
 	;-----------print bx---------------------
 			
@@ -207,7 +222,7 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push bx now_numeral_system
+	        push copy_bx_for_print now_numeral_system
 	        mov di, bx	   
 	        call itoa
 
@@ -225,7 +240,7 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push cx now_numeral_system
+	        push copy_cx_for_print now_numeral_system
 	        mov di, bx	   
 	        call itoa
 
@@ -243,7 +258,7 @@ draw_frame proc
 		add sp, 3 * 2
 
 	        add x_left, 3	        
-	        push dx now_numeral_system
+	        push copy_dx_for_print now_numeral_system
 	        mov di, bx	   
 	        call itoa
 
@@ -508,8 +523,8 @@ itoa endp
 ;--------------------------------------------------------------------------
 
 return_last_interrupt_handler proc
-		in al, 61h  		; got the symbol
-		mov ah, al
+		;in al, 61h  		; got the symbol
+		;mov ah, al
 
 		or al, 80h 		; put the most significant bit
 		out 61h, al 		; put symbol
@@ -540,6 +555,11 @@ x_left			dw 68
 y_left			dw 3
 copy_bp_for_itoa	dw 0
 now_numeral_system	dw 10
+
+copy_ax_for_print	dw 999h
+copy_bx_for_print	dw 888h
+copy_cx_for_print	dw 777h
+copy_dx_for_print	dw 666h
 ;-------------------------------------------------------------------------
                    
             
