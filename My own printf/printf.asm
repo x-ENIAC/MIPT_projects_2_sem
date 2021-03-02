@@ -23,14 +23,27 @@ printf:
 			mov r11, rbp
 			mov rbp, rsp
 
-			pop	rbx
+			pop	rbx			
 
-		    mov rax, 0x01      ; write64 (rdi, rsi, rdx) ... r10, r8, r9
-            mov rdi, 1         ; stdout
+			
+	global_handler:
+
+
+			cmp rbx, null_symbol
+			je end_printf
+
+
+		    mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
+            mov rdi, 1          ; stdout
             mov rsi, rbx
-            mov rdx, 1    ; strlen (Msg)
-            syscall		
+            mov rdx, 1    		; strlen 
+            syscall	
 
+            inc rbx
+
+            jmp global_handler	
+
+    end_printf:
 
             push r12
 
@@ -42,6 +55,8 @@ printf:
 section     .data
             
 string_to_print	db "Hello, world!", 0
+
+null_symbol			db 0
 
 char_symbol			db 'c'
 string_symbol		db 's'
