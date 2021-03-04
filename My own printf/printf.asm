@@ -75,6 +75,10 @@ percent_handler:
     		cmp dh, 'c'
     		je char_handler
 
+    		cmp dh, '%'
+    		je printf_procent
+
+
     		jmp global_handler
 
 char_handler:
@@ -97,7 +101,24 @@ char_handler:
 
     		xor rcx, rcx
 
-            jmp global_handler  		
+            jmp global_handler  	
+
+printf_procent:
+			push r11
+			
+			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
+            mov rdi, 1          ; stdout
+            mov rsi, r11
+            mov rdx, 1    		; strlen 
+            syscall	 
+
+            pop r11
+            inc r11
+
+    		xor rcx, rcx
+
+            jmp global_handler              
+
 
 end_printf:
 			
@@ -114,7 +135,7 @@ end_printf:
             
 section     .data
             
-string_to_print	db "L%cOL%cHello, world!", 0x00
+string_to_print	db "L%cOL%cHel%%lo, world!%%", 0x00
 
 null_symbol			db 0
 
