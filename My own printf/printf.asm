@@ -3,12 +3,12 @@
 ; ld -s -o printf printf.o
 
 ; r8  - 
-; r9  - number_to_itoa
-; r10 - system_to_itoa
+; r9  - address number to itoa
+; r10 - system to itoa
 ; r11 - format string
 ; r12 - 
 ; r13 - begin of the parameters
-; r14 - length_number_to_itoa
+; r14 - length number to itoa
 ; r15 - 
 
 section .text
@@ -22,9 +22,10 @@ _start:
 			push 3802
 			push 19
 			push 865
+			push another_string
 			push string_to_print
 			call printf
-			add rsp, 2 * 8
+			add rsp, 8 * 8
 			;pop r13
 
 
@@ -88,6 +89,9 @@ percent_handler:
     		cmp dh, 'c'
     		je char_handler
 
+    		cmp dh, 's'
+    		je string_handler     		
+
     		cmp dh, '%'
     		je printf_procent
 
@@ -109,6 +113,52 @@ percent_handler:
     		jmp global_handler
 
 
+string_handler:
+			
+			push rbx
+			push rcx
+
+			mov rdi, [rbp + r13]
+			call get_length_string
+			mov rdx, rax
+
+			pop rcx
+			pop rbx
+
+			push rcx
+			push r11
+			
+			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
+            mov rdi, 1          ; stdout
+            mov rsi, [rbp + r13]	; address of string
+            ;mov rdx, 1    		; strlen 
+            syscall	 
+
+            pop r11
+            pop rcx
+            inc r11
+
+            add r13, 1 * 8
+
+    		xor rcx, rcx
+
+            jmp global_handler  
+
+
+get_length_string:
+
+			mov rbx, rdi
+
+			xor rax, rax
+			mov rcx, 0xffffffff
+
+			repne scasb 
+
+			sub rdi, rbx
+			mov rax, rdi
+
+			ret           
+
 char_handler:
 
 			push rcx
@@ -129,7 +179,7 @@ char_handler:
 
     		xor rcx, rcx
 
-            jmp global_handler  
+            jmp global_handler              
 
 
 printf_procent:
@@ -270,7 +320,8 @@ itoa:
             
 section     .data
             
-string_to_print		db "Number: %d, %oooo%%, %xhhxh, %c%b%c%%%%!", 0x00
+string_to_print		db "Nu%smber: %d, %oooo%%, %xhhxh, %c%b%c%%%%!", 0x00
+another_string		db "hahaha%%%c", 0x00
 
 null_symbol			db 0
 
