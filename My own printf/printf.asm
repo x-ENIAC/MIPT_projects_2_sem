@@ -16,10 +16,12 @@ section .text
 global _start                  
 
 _start:    
+			push ')'
+			push 9000
 			push '('
 			push 3802
-			push ')'
-			push '#'
+			push 19
+			push 865
 			push string_to_print
 			call printf
 			add rsp, 2 * 8
@@ -89,11 +91,23 @@ percent_handler:
     		cmp dh, '%'
     		je printf_procent
 
+    		; you go next only if you want to print number!
+
+    		cmp dh, 'b'
+    		je binary_handler    	
+
+    		cmp dh, 'o'
+    		je octal_handler
+
     		cmp dh, 'd'
-    		je decimal_handler    		
+    		je decimal_handler  
+
+    		cmp dh, 'x'
+    		je hexadecimal_handler  
 
 
     		jmp global_handler
+
 
 char_handler:
 
@@ -115,7 +129,8 @@ char_handler:
 
     		xor rcx, rcx
 
-            jmp global_handler  	
+            jmp global_handler  
+
 
 printf_procent:
 			push r11
@@ -133,25 +148,47 @@ printf_procent:
 
             jmp global_handler  
 
+binary_handler:
+
+			mov r10, 2	
+			jmp numbers_handler	   
+
+octal_handler:
+
+			mov r10, 8	
+			jmp numbers_handler				         
+
 decimal_handler:
+
+			mov r10, 10	
+			jmp numbers_handler
+
+hexadecimal_handler:
+
+			mov r10, 16	
+			jmp numbers_handler					
+
+
+
+numbers_handler:
 
 			mov r9, rbp
 			add r9, r13
 			add r13, 1 * 8
 
-			mov r10, 10
 			mov rax, [r9]
-			call itoa
+			call itoa 			; r10 = system
 
 			mov r8, rcx
 			mov r9, r11
 
 			mov rsi, rsp		
 
-	print_numbres:
+	print_numbers_from_stack:
+
 			mov al, byte [rsi]
 			cmp al, '$'
-			je end_print_decimal
+			je end_print_numbers_from_stack
 
 			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
             mov rdi, 1          ; stdout
@@ -162,9 +199,10 @@ decimal_handler:
 
             add rsi, 1 * 8
             ;inc rsi
-            jmp print_numbres
+            jmp print_numbers_from_stack
 
-    end_print_decimal:
+    end_print_numbers_from_stack:
+
     		pop r14				; delete '$'
 
             mov r11, r9
@@ -173,7 +211,6 @@ decimal_handler:
             inc r11
 
     		xor rcx, rcx
-    		;add rsp, r14 * 8
 
             jmp global_handler  
 
@@ -233,7 +270,7 @@ itoa:
             
 section     .data
             
-string_to_print	db "L%cOL%cHel%%lo%d, %cworld!%%", 0x00
+string_to_print		db "Number: %d, %oooo%%, %xhhxh, %c%b%c%%%%!", 0x00
 
 null_symbol			db 0
 
