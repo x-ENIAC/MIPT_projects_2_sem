@@ -7,33 +7,58 @@
 ; r10 - system to itoa
 ; r11 - format string
 ; r12 - 
-; r13 - begin of the parameters
+; r13 - begin of the parametersmy_asm_printf
 ; r14 - length number to itoa
 ; r15 - 
 
 section .text
 
-global _start                  
+global _start 
+global my_asm_printf     
+global my_sum            
+extern add_numbers
 
 _start:    
-			push ')'
-			push 9000
-			push '('
-			push 3802
-			push 19
-			push 865
-			push another_string
-			push string_to_print
-			call printf
-			add rsp, 8 * 8
-			;pop r13
+;			push 10
+;			push 15
+;			inc rdi
+;    		call add_numbers
+;    		add rsp, 2 * 8
+;    		
+;    		push rax
+;    		push str2
+;    		call my_asm_printf
+    		;add rsp, 2 * 8	
+
+    		push 3802
+    		push 4095
+    		push 2021
+    		push 8
+    		push 1000000
+    		push str_cat
+			push 'I'		
+			push test_string
+			call my_asm_printf
+			add rsp, 3 * 8
+			pop r13
 
 
             mov rax, 0x3C      ; exit64 (rdi)
             xor rdi, rdi
             syscall
 
-printf:
+my_sum:
+    mov rax, rdi
+    add rax, rsi
+
+    ;push 28
+    ;push 82				
+    ;call add_numbers
+    ;add rsp, 1 * 8
+
+	ret
+
+my_asm_printf:
 			enter 0, 0
 
 			mov r11, [rbp + 2 * 8]		; format string
@@ -51,7 +76,7 @@ global_handler:
 			mov dl, byte [rax]
 
 			cmp dl, 0x00
-			je end_printf
+			je end_my_asm_printf
 
 			cmp dl, '%'
 			je percent_handler			
@@ -84,30 +109,38 @@ percent_handler:
     		xor rcx, rcx
 
     		inc rax
-    		mov dh, byte [rax]
+    		xor rdx, rdx
+    		mov dl, byte [rax]
+    		mov rbx, jump_table
+    		shl rdx, 3
+    		add rbx, rdx
 
-    		cmp dh, 'c'
-    		je char_handler
+    		xor rdx, rdx
+    		mov dl, byte [rax]
+    		jmp [rbx]
 
-    		cmp dh, 's'
-    		je string_handler     		
+    		;cmp dh, 'c'
+    		;je char_handler
 
-    		cmp dh, '%'
-    		je printf_procent
+    		;cmp dh, 's'
+    		;je string_handler     		
+
+    		;cmp dh, '%'
+    		;je my_asm_printf_procent
 
     		; you go next only if you want to print number!
 
-    		cmp dh, 'b'
-    		je binary_handler    	
+    		;cmp dh, 'b'
+    		;je binary_handler    	
 
-    		cmp dh, 'o'
-    		je octal_handler
+    		;cmp dh, 'o'
+    		;je octal_handler
 
-    		cmp dh, 'd'
-    		je decimal_handler  
+    		;cmp dh, 'd'
+    		;je decimal_handler  
 
-    		cmp dh, 'x'
-    		je hexadecimal_handler  
+    		;cmp dh, 'x'
+    		;je hexadecimal_handler  
 
 
     		jmp global_handler
@@ -160,6 +193,11 @@ get_length_string:
 			ret           
 
 char_handler:
+			cmp dl, 's'
+			je string_handler
+			
+			cmp dl, '%'
+			je my_asm_printf_procent
 
 			push rcx
 			push r11
@@ -182,7 +220,7 @@ char_handler:
             jmp global_handler              
 
 
-printf_procent:
+my_asm_printf_procent:
 			push r11
 			
 			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
@@ -265,7 +303,7 @@ numbers_handler:
             jmp global_handler  
 
 
-end_printf:
+end_my_asm_printf:
 			
 			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
             mov rdi, 1          ; stdout
@@ -320,8 +358,8 @@ itoa:
             
 section     .data
             
-string_to_print		db "Nu%smber: %d, %oooo%%, %xhhxh, %c%b%c%%%%!", 0x00
-another_string		db "hahaha%%%c", 0x00
+test_string			db "Well, %c love %s on %d%% (today March %o, %b year. Press %x me. Be happy and have a %x!", 0x00
+str_cat				db "cats", 0x00
 
 null_symbol			db 0
 
@@ -333,3 +371,21 @@ binary_symbol		db 'b'
 octal_symbol		db 'o'
 decimal_symbol		db 'd'
 hexadecimal_symbol	db 'x'
+
+jump_table:	
+
+			times ('b')			dq char_handler
+								dq binary_handler
+								dq char_handler
+								dq decimal_handler
+
+			times ('o' - 'd')	dq char_handler
+								dq octal_handler
+
+			times ('s' - 'o')	dq char_handler
+								dq string_handler
+
+			times ('x' - 's')	dq char_handler
+								dq hexadecimal_handler
+
+			times (256 - 'x')	dq char_handler
