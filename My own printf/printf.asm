@@ -35,7 +35,7 @@ _start:
     		push 2021
     		push 8
     		push 1000000
-    		push str_cat
+    		push str_cats
 			push 'I'		
 			push test_string
 			call my_asm_printf
@@ -193,11 +193,6 @@ get_length_string:
 			ret           
 
 char_handler:
-			cmp dl, 's'
-			je string_handler
-			
-			cmp dl, '%'
-			je my_asm_printf_procent
 
 			push rcx
 			push r11
@@ -359,7 +354,7 @@ itoa:
 section     .data
             
 test_string			db "Well, %c love %s on %d%% (today March %o, %b year. Press %x me. Be happy and have a %x!", 0x00
-str_cat				db "cats", 0x00
+str_cats			db "cats", 0x00
 
 null_symbol			db 0
 
@@ -373,19 +368,21 @@ decimal_symbol		db 'd'
 hexadecimal_symbol	db 'x'
 
 jump_table:	
+			times ('%')				dq char_handler
+									dq my_asm_printf_procent
 
-			times ('b')			dq char_handler
-								dq binary_handler
-								dq char_handler
-								dq decimal_handler
+			times ('b' - '%' - 1)	dq char_handler
+									dq binary_handler
+									dq char_handler
+									dq decimal_handler
 
-			times ('o' - 'd')	dq char_handler
-								dq octal_handler
+			times ('o' - 'd' - 1)	dq char_handler
+									dq octal_handler
 
-			times ('s' - 'o')	dq char_handler
-								dq string_handler
+			times ('s' - 'o' - 1)	dq char_handler
+									dq string_handler
 
-			times ('x' - 's')	dq char_handler
-								dq hexadecimal_handler
+			times ('x' - 's' - 1)	dq char_handler
+									dq hexadecimal_handler
 
-			times (256 - 'x')	dq char_handler
+			times (256 - 'x' - 1)	dq char_handler
