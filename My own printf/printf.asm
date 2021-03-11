@@ -13,7 +13,7 @@
 
 section .text
 
-global _start 
+;global _start 
 global my_asm_printf     
 global my_sum            
 extern add_numbers
@@ -25,27 +25,23 @@ _start:
 ;    		call add_numbers
 ;    		add rsp, 2 * 8
 ;    		
-;    		push rax
-;    		push str2
-;    		call my_asm_printf
-    		;add rsp, 2 * 8	
 
-    		push 3802
-    		push 4095
-    		push 2021
-    		push 8
-    		push 1000000
-    		push str_cats
-			push 'I'		
-			push test_string
-			call my_asm_printf
-			add rsp, 3 * 8
-			pop r13
+    		;push 3802
+    		;push 4095
+    		;push 2021
+    		;push 8
+    		;push 1000000
+    		;push str_cats
+			;push 'I'		
+			;push test_string
+			;call my_asm_printf
+			;add rsp, 8 * 8
+			;pop r13
 
 
-            mov rax, 0x3C      ; exit64 (rdi)
-            xor rdi, rdi
-            syscall
+            ;mov rax, 0x3C      ; exit64 (rdi)
+            ;xor rdi, rdi
+            ;syscall
 
 my_sum:
     mov rax, rdi
@@ -59,13 +55,29 @@ my_sum:
 	ret
 
 my_asm_printf:
-			enter 0, 0
+			pop rbx 					; return address
 
-			mov r11, [rbp + 2 * 8]		; format string
-			mov rbx, 0
-			mov rcx, 0
+			;mov r14, [rdi]
+			;mov r15, [rdi + 1]
+			;mov r8, [rdi + 8]
 
-			mov	r13, 3 * 8			; begin of the parameters
+			mov r11, rdi ;[rbp + 2 * 8]		; format string
+			;mov rbx, 0
+			;mov rcx, 0
+
+			push r9
+			push r8
+			push rcx
+			push rdx
+			push rsi
+
+			mov r14, rbp				; for save rbp without stack
+			mov rbp, rsp			
+
+			;mov	r13, 3 * 8			; begin of the parameters
+			xor r13, r13
+			xor rcx, rcx				; counter of symbols without %
+			xor rdx, rdx				; for take symbols from the format line
 
 			
 global_handler:
@@ -91,6 +103,7 @@ percent_handler:
 			push rdx
 			push r11
 			push rax
+			push rsi
 
 			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
             mov rdi, 1          ; stdout
@@ -98,6 +111,7 @@ percent_handler:
             mov rdx, rcx   		; strlen 
             syscall	
 
+            pop rsi
             pop rax
             pop r11
             pop rdx
@@ -148,47 +162,79 @@ percent_handler:
 
 string_handler:
 			
-			push rbx
+			push rdi
 			push rcx
+			push rsi
 
-			mov rdi, [rbp + r13]
+			mov rdi, rsi	;[rbp + r13]
 			call get_length_string
-			mov rdx, rax
+			mov rdx, rcx
 
+			pop rsi
 			pop rcx
-			pop rbx
+			pop rdi
 
 			push rcx
 			push r11
+			push rsi
 			
 			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
             mov rdi, 1          ; stdout
-            mov rsi, [rbp + r13]	; address of string
+            ;mov rsi, [rbp + r13]	; address of string
+            mov rsi, rbp
+            add rsi, r13
             ;mov rdx, 1    		; strlen 
             syscall	 
 
+            pop rsi
             pop r11
             pop rcx
+
             inc r11
 
             add r13, 1 * 8
 
     		xor rcx, rcx
+    		;sub rsi, 1 * 8
+    		dec rsi
 
             jmp global_handler  
 
 
 get_length_string:
+	
+			mov rdi, rbp
+			add rdi, r13
 
-			mov rbx, rdi
-
-			xor rax, rax
-			mov rcx, 0xffffffff
-
-			repne scasb 
-
-			sub rdi, rbx
+			mov rdi, [rdi]
 			mov rax, rdi
+
+			xor rcx, rcx
+
+			;mov rbx, rdi			; address the string
+
+			;xor rax, rax			; try to find '0' into string (end of the string)
+			;mov rcx, 0xffffffff
+
+			;repne scasb 
+
+			;sub rdi, rbx
+			;mov rax, rdi
+
+		find_zero_into_line:
+			mov rax, rdi
+			add rax, rcx
+
+			cmp byte [rax], 0
+			je end_find_zero_into_line
+
+			inc rcx
+
+			jmp find_zero_into_line
+
+		end_find_zero_into_line:
+
+
 
 			ret           
 
@@ -244,6 +290,7 @@ octal_handler:
 decimal_handler:
 
 			mov r10, 10	
+			inc rsi
 			jmp numbers_handler
 
 hexadecimal_handler:
@@ -306,7 +353,9 @@ end_my_asm_printf:
             mov rdx, rcx    		; strlen 
             syscall	 
 
-            leave
+            mov rbp, r14
+
+            push rbx
 
             ret
 
@@ -353,7 +402,7 @@ itoa:
             
 section     .data
             
-test_string			db "Well, %c love %s on %d%% (today March %o, %b year. Press %x me. Be happy and have a %x!", 0x00
+test_string			db "Well, %c love %s on %d%% (today March %o, %b year. Press %x me. Be happy and have a %x!)", 0x00
 str_cats			db "cats", 0x00
 
 null_symbol			db 0
