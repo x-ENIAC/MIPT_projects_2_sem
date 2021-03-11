@@ -62,6 +62,7 @@ my_asm_printf:
 			;mov r8, [rdi + 8]
 
 			mov r11, rdi ;[rbp + 2 * 8]		; format string
+			mov r15, rbx
 			;mov rbx, 0
 			;mov rcx, 0
 
@@ -81,6 +82,7 @@ my_asm_printf:
 
 			
 global_handler:
+			mov rbx, r15
 
 			mov rax, r11
 			add rax, rcx
@@ -183,6 +185,7 @@ string_handler:
             ;mov rsi, [rbp + r13]	; address of string
             mov rsi, rbp
             add rsi, r13
+            mov rsi, [rsi]
             ;mov rdx, 1    		; strlen 
             syscall	 
 
@@ -299,7 +302,7 @@ hexadecimal_handler:
 			jmp numbers_handler					
 
 
-
+; ---------- Trash list: r9, rax, r13, r8, rsi, rdi, rdx, rcx --------
 numbers_handler:
 
 			mov r9, rbp
@@ -353,9 +356,10 @@ end_my_asm_printf:
             mov rdx, rcx    		; strlen 
             syscall	 
 
-            mov rbp, r14
+            ;mov rbp, r14       
 
-            push rbx
+            add rsp, 8 * 5
+            push rbx            
 
             ret
 
