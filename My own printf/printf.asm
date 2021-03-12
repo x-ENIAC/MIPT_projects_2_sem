@@ -44,18 +44,14 @@ _start:
             ;syscall
 
 my_sum:
-    mov rax, rdi
-    add rax, rsi
 
-    ;push 28
-    ;push 82				
-    ;call add_numbers
-    ;add rsp, 1 * 8
+   			mov rax, rdi
+    		add rax, rsi
 
-	ret
+			ret
 
 my_asm_printf:
-			;pop rbx 					; return address
+
 			push rbp
 			mov rbp, rsp
 
@@ -115,13 +111,15 @@ global_handler:
 
 is_take_params_from_stack:
 
-			cmp r13, 5 * 8
+			cmp r13, count_regs_with_args * 8
 			jne take_params_from_regs
 
-			add r13, (2 + 7) * 8	; in stack are saving
-									; rsp, rbp, rbx, r12-r15
+			add r13, (2 + count_must_save_regs) * 8	; in stack are saving
+													; rsp, rbp, rbx, r12-r15
+													; + ret address
 
-take_params_from_regs:
+		take_params_from_regs:
+
 			ret
 
 
@@ -210,11 +208,10 @@ string_handler:
 			
 			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
             mov rdi, 1          ; stdout
-            ;mov rsi, [rbp + r13]	; address of string
             mov rsi, rbp
             add rsi, r13
             mov rsi, [rsi]
-            ;mov rdx, 1    		; strlen 
+            ;mov rdx, rdx    	; strlen is already in rdx
             syscall	 
 
             pop rsi
@@ -226,7 +223,6 @@ string_handler:
             add r13, 1 * 8
 
     		xor rcx, rcx
-    		;sub rsi, 1 * 8
     		dec rsi
 
             jmp global_handler  
@@ -242,16 +238,6 @@ get_length_string:
 
 			xor rcx, rcx
 
-			;mov rbx, rdi			; address the string
-
-			;xor rax, rax			; try to find '0' into string (end of the string)
-			;mov rcx, 0xffffffff
-
-			;repne scasb 
-
-			;sub rdi, rbx
-			;mov rax, rdi
-
 		find_zero_into_line:
 			mov rax, rdi
 			add rax, rcx
@@ -264,8 +250,6 @@ get_length_string:
 			jmp find_zero_into_line
 
 		end_find_zero_into_line:
-
-
 
 			ret           
 
@@ -331,7 +315,6 @@ hexadecimal_handler:
 			jmp numbers_handler					
 
 
-; ---------- Trash list: r9, rax, r13, r8, rsi, rdi, rdx, rcx --------
 numbers_handler:
 
 			mov r9, rbp
@@ -384,18 +367,6 @@ end_my_asm_printf:
             mov rsi, r11
             mov rdx, rcx    		; strlen 
             syscall	 
-
-            ;mov rbp, r14       
-
-            ;mov rcx, 5 ;  r12
-            ;dec rcx
-
-    ;delete_values_from_stack:
-
-    		;pop rdx
-    		;loop delete_values_from_stack
-
-            ;add rsp, 8 * 5
 
 			pop rsi
 			pop rdx
@@ -473,7 +444,8 @@ octal_symbol		db 'o'
 decimal_symbol		db 'd'
 hexadecimal_symbol	db 'x'
 
-count_arguments		db 0
+count_must_save_regs	equ 7
+count_regs_with_args	equ 5
 
 jump_table:	
 			times ('%')				dq char_handler
