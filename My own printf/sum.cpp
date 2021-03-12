@@ -25,9 +25,11 @@ extern "C" {
 
 
 int main() {
-	//my_asm_printf(".!%d.Hey, %s! Today we are going to eat %d pizza%c. %o %% %x, he-he", 5555, "dear", 2, "s", 8, 3802);
-	//my_asm_printf("Well, %c love %s on %d%% (today March %o, %b year. Press %x me. Be happy and have a %x!)", 'I', "cats", 1000000, 8, 2021, 4095, 3802);
-	my_asm_printf("Hahaha. %c%c%c%c%c%c", 'h', 'e', 'l', 'p', ',', 'm');
+	my_asm_printf(".!%d.Hey, %s! Today we are going to eat %d pizza%c. %o %% %x, he-he", 5555, "dear", 2, "s", 8, 3802);
+	my_asm_printf(", Well, %c love %s on %d%% (today March %o, %b year. Press %x me. Be happy and have a %x!)", 'I', "cats", 1000000, 8, 2021, 4095, 3802);
+	
+	//my_asm_printf("Hahaha. %c%c%c%c%c%c%c", 'h', 'e', 'l', 'p', ',', 'm', 'e');
+	//my_asm_printf("Hahaha. %c%c%c%c%c", 'h', 'e', 'l', 'p', ',');
 
 	//printf("Sum of 5 and 15 is %d\n", my_sum(5, 15));
 

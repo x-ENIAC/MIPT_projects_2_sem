@@ -9,7 +9,7 @@
 ; r12 - 
 ; r13 - begin of the parametersmy_asm_printf
 ; r14 - length number to itoa
-; r15 - 
+; r15 - rbx
 
 section .text
 
@@ -55,7 +55,18 @@ my_sum:
 	ret
 
 my_asm_printf:
-			pop rbx 					; return address
+			;pop rbx 					; return address
+			push rbp
+			mov rbp, rsp
+
+			push rsp
+			push rbp
+			push rbx
+			push r12
+			push r13
+			push r14
+			push r15
+
 
 			;mov r14, [rdi]
 			;mov r15, [rdi + 1]
@@ -79,10 +90,13 @@ my_asm_printf:
 			xor r13, r13
 			xor rcx, rcx				; counter of symbols without %
 			xor rdx, rdx				; for take symbols from the format line
+			xor r12, r12				; counter of args
 
 			
 global_handler:
+
 			mov rbx, r15
+			call is_take_params_from_stack
 
 			mov rax, r11
 			add rax, rcx
@@ -99,7 +113,21 @@ global_handler:
 
             jmp global_handler	
 
+is_take_params_from_stack:
+
+			cmp r13, 5 * 8
+			jne take_params_from_regs
+
+			add r13, (2 + 7) * 8	; in stack are saving
+									; rsp, rbp, rbx, r12-r15
+
+take_params_from_regs:
+			ret
+
+
 percent_handler:
+
+			inc r12
 
 			push rcx
 			push rdx
@@ -266,6 +294,7 @@ char_handler:
 
 my_asm_printf_procent:
 			push r11
+			dec r12
 			
 			mov rax, 0x01       ; write64 (rdi, rsi, rdx) ... r10, r8, r9
             mov rdi, 1          ; stdout
@@ -358,8 +387,32 @@ end_my_asm_printf:
 
             ;mov rbp, r14       
 
-            add rsp, 8 * 5
-            push rbx            
+            ;mov rcx, 5 ;  r12
+            ;dec rcx
+
+    ;delete_values_from_stack:
+
+    		;pop rdx
+    		;loop delete_values_from_stack
+
+            ;add rsp, 8 * 5
+
+			pop rsi
+			pop rdx
+			pop rcx
+			pop r8
+			pop r9
+
+			pop r15
+			pop r14
+			pop r13
+			pop r12
+			pop rbx
+			pop rbp
+			pop rsp
+
+            pop rbp
+
 
             ret
 
@@ -419,6 +472,8 @@ binary_symbol		db 'b'
 octal_symbol		db 'o'
 decimal_symbol		db 'd'
 hexadecimal_symbol	db 'x'
+
+count_arguments		db 0
 
 jump_table:	
 			times ('%')				dq char_handler
