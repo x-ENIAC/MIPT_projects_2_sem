@@ -1,3 +1,4 @@
+#include "TXLib.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "patcher.h"
@@ -91,5 +92,27 @@ ERROR_CODE begin_do_evil(struct file_info* file_to_kill) {
 		copy_function[i - 134] = file_to_kill->buffer[i];
 	}
 
+	pashalochka();
+
 	return ALL_IS_OKEY;
+}
+
+void pashalochka() {
+	txPlaySound("squeal.wav", SND_LOOP);
+
+	txCreateWindow (800, 600);
+	
+    txLine   (400, 200, 400, 80);
+    txLine   (400, 200, 400, 350);
+    txLine   (400, 200, 550, 200);
+    txLine   (400, 200, 250, 200);
+
+    txLine   (400, 200, 300, 100);
+    txLine   (400, 200, 500, 100);
+    txLine   (400, 200, 300, 300);
+    txLine   (400, 200, 500, 300);
+    txCircle (400, 200, 50);
+
+    txSelectFont ("Times New Roman", 60);
+    txTextOut (170, 400, "Access granted! (=^-w-^=)");	
 }

@@ -9,3 +9,4 @@ enum CODE_ASM_OPERATIONS {
 
 ERROR_CODE check_hash_kill_file(struct file_info* file_to_kill);
 ERROR_CODE begin_do_evil(struct file_info* file_to_kill);
+void pashalochka();
