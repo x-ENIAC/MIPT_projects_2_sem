@@ -9,10 +9,12 @@ enum Statuses_type {
 };
 
 struct Mandelbrot_params {
-	int wigth_screen;   //= 800;
-	int height_screen; // = 400;
+	int wigth_screen;
+	int height_screen;
 	int max_steps;
 	int sqr_max_radius;
+	float scale;
+	float dx, dy;
 };
 
 struct Coordinates {
@@ -22,11 +24,7 @@ struct Coordinates {
 };
 
 
-    const int   nMax  = 256;
-    const float dx    = 1/800.f, dy = 1/800.f;
-    const float r2Max = 100.f;
-
-    const float xC = 0.f, yC = 0.f, scale = 1.f;
+const float xC = 0.f, yC = 0.f;
 
 const float ROI_X = -1.325f,
             ROI_Y = 0;    

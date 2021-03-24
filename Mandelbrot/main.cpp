@@ -9,10 +9,13 @@
 
 int main() {
  	Mandelbrot_params parameters = {
-		800,
-		400,
-		2000,
-		100
+		800,			// wigth_screen
+		600,			// height_screen
+		2000,			// max_steps
+		100,			// sqr_max_radius
+		1.0,			// scale
+		1 / 800.f,		// dx
+		1 / 800.f		// dy
 	};
 
     Statuses_type status = start_work_with_window(&parameters);
