@@ -39,6 +39,6 @@ bool is_escape_pressed();
 
 Coordinates counting_new_coordinates(Coordinates old_coordinates, Mandelbrot_params* parameters);
 
-RGBQUAD get_colour(Coordinates* coordinates, Mandelbrot_params* parameters);
+RGBQUAD get_colour(const int steps, Mandelbrot_params* parameters);
 
 #endif
