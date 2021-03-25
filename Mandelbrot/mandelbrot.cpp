@@ -48,25 +48,18 @@ Statuses_type draw_points(Mandelbrot_params* parameters) {
 			if(is_escape_pressed())
 				return ESCAPE_PRESSED;
 
-			Coordinates now_coordinates[4] = { Coordinates {start_x, 	      		      start_y, 0}, 
-											   Coordinates {start_x + parameters->dx,	  start_y, 0},
-											   Coordinates {start_x + parameters->dx * 2, start_y, 0}, 
-											   Coordinates {start_x + parameters->dx * 3, start_y, 0}
-											 };
+			Coordinates now_coordinates[4] = {}; for(int ind = 0; ind < 4; ++ind) now_coordinates[ind] = Coordinates {start_x + ind * parameters->dx, start_y, 0};
 
-			int step[4] = {0, 0, 0, 0};
+			int step[4] = {}; for(int ind = 0; ind < 4; ++ind) step[ind] = 0;
 
-			for(int ind = 0; ind < 4; ++ind) {
-				Coordinates new_coordinates = counting_new_coordinates(now_coordinates[ind], parameters);
-				step[ind] = new_coordinates.step;
-			}
+			Coordinates new_coordinates[4] = {}; for(int ind = 0; ind < 4; ++ind) new_coordinates[ind] = counting_new_coordinates(now_coordinates[ind], parameters);
+											  for(int ind = 0; ind < 4; ++ind) step[ind] = new_coordinates[ind].step;
+			
 
-				/*RGBQUAD point_colour[4] = {};
-				for(int ind = 0; ind < 4; ++ind)
-					point_colour[ind] = get_colour(&new_coordinates[ind], parameters);*/
+			RGBQUAD point_colour = {};
 
 			for(int ind = 0; ind < 4; ++ind) {
-				RGBQUAD point_colour = get_colour(step[ind], parameters);
+				point_colour = get_colour(step[ind], parameters);
 				screen_buffer[y][x + ind] = point_colour;
 			}
 			
