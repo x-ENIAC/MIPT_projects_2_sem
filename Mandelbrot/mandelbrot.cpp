@@ -2,9 +2,14 @@
 #include "TXlib.h"
 #include "mandelbrot.h"
 #include <math.h>
+#include <emmintrin.h>
+
+const __m128 _3210_dx  = _mm_set_ps  (3.f, 2.f, 1.f, 0.f);
+const __m128 _255  	   = _mm_set_ps1 (255.f);
 
 Statuses_type start_work_with_window(Mandelbrot_params* parameters) {
 	txCreateWindow(parameters->wigth_screen, parameters->height_screen);
+	Win32::_fpreset();
 	txBegin();		// Blocks window image refresh to avoid flickering ©Ded32
 
 	return ALL_IS_OKEY;
@@ -41,27 +46,29 @@ Statuses_type draw_points(Mandelbrot_params* parameters) {
 		if(is_escape_pressed())
 			return ESCAPE_PRESSED;
 
-		float start_x = ( (			- parameters->wigth_screen  / 2.0) * parameters->dx + ROI_X + xC ) * parameters->scale, 
-			  start_y = ( ((float)y - parameters->height_screen / 2.0) * parameters->dy + ROI_Y + yC ) * parameters->scale;
+		double start_x = ( (	      - parameters->wigth_screen  / 2.0) * parameters->dx + ROI_X + xC ) * parameters->scale, 
+			   start_y = ( ((double)y - parameters->height_screen / 2.0) * parameters->dy + ROI_Y + yC ) * parameters->scale;
 
 		for(int x = 0; x < parameters->wigth_screen; x += 4, start_x += parameters->dx * 4) {
 			if(is_escape_pressed())
 				return ESCAPE_PRESSED;
 
-			Coordinates now_coordinates[4] = {}; for(int ind = 0; ind < 4; ++ind) now_coordinates[ind] = Coordinates {start_x + ind * parameters->dx, start_y, 0};
+			__m128 dx_for_mult = _mm_set_ps1(parameters->dx);
+				   dx_for_mult = _mm_mul_ps (_3210_dx, dx_for_mult);
 
-			int step[4] = {}; for(int ind = 0; ind < 4; ++ind) step[ind] = 0;
+			Coordinates now_coordinates = {};
 
-			Coordinates new_coordinates[4] = {}; for(int ind = 0; ind < 4; ++ind) new_coordinates[ind] = counting_new_coordinates(now_coordinates[ind], parameters);
-											  for(int ind = 0; ind < 4; ++ind) step[ind] = new_coordinates[ind].step;
+			now_coordinates.y = 		    _mm_set_ps1(start_y);
+			now_coordinates.x = _mm_add_ps( _mm_set_ps1(start_x), dx_for_mult);
+
+			Coordinates new_coordinates = counting_new_coordinates(now_coordinates, parameters);			
+
+			RGBQUAD point_colour[4] = {};
+			get_colour(point_colour, new_coordinates.step, parameters);
+
+			for(int ind = 0; ind < 4; ++ind)
+				screen_buffer[y][x + ind] = point_colour[ind];
 			
-
-			RGBQUAD point_colour = {};
-
-			for(int ind = 0; ind < 4; ++ind) {
-				point_colour = get_colour(step[ind], parameters);
-				screen_buffer[y][x + ind] = point_colour;
-			}
 			
 		}
 	}
@@ -75,32 +82,46 @@ bool is_escape_pressed() {
 
 Coordinates counting_new_coordinates(Coordinates old_coordinates, Mandelbrot_params* parameters) {
 	Coordinates new_coordinates = old_coordinates;
+	new_coordinates.step = _mm_setzero_si128();
+
+	__m128 max_distance = _mm_set_ps1((double)parameters->sqr_max_radius);
 
 	for(int step = 0; step < parameters->max_steps; ++step) {
-		float mult_xy = new_coordinates.x * new_coordinates.y;
-		float sqr_x   = new_coordinates.x * new_coordinates.x;
-		float sqr_y   = new_coordinates.y * new_coordinates.y;
+		__m128 mult_xy = _mm_mul_ps(new_coordinates.x, new_coordinates.y);
+		__m128 sqr_x   = _mm_mul_ps(new_coordinates.x, new_coordinates.x);
+		__m128 sqr_y   = _mm_mul_ps(new_coordinates.y, new_coordinates.y);
 
-		float sqr_distance = sqr_x + sqr_y;
+		__m128 sqr_distance = _mm_add_ps(sqr_x, sqr_y);	
 
-		if(sqr_distance > parameters->sqr_max_radius) {
-			new_coordinates.step = step;
+		__m128 cmp_steps = _mm_cmple_ps(sqr_distance, max_distance);
+		int mask_steps = _mm_movemask_ps(cmp_steps);
+		if(!mask_steps)
 			break;
-		}
 
-		new_coordinates.x =  sqr_x  -  sqr_y  + old_coordinates.x;
-		new_coordinates.y = mult_xy + mult_xy + old_coordinates.y;
+		new_coordinates.step = _mm_sub_epi32(new_coordinates.step, _mm_castps_si128 (cmp_steps));
+
+		new_coordinates.x = _mm_add_ps(_mm_sub_ps(sqr_x,     sqr_y), old_coordinates.x);
+		new_coordinates.y = _mm_add_ps(_mm_add_ps(mult_xy, mult_xy), old_coordinates.y);
 	}
 
 	return new_coordinates;
 }
 
-RGBQUAD get_colour(const int steps, Mandelbrot_params* parameters) {
-	float transparency = sqrtf(sqrtf((float)steps / (float)parameters->max_steps)) * 255.f;
-	unsigned char char_transparency = (unsigned char)transparency;
+void get_colour(RGBQUAD point_colour[4], __m128i steps, Mandelbrot_params* parameters) {
+	__m128 many_max_steps = _mm_set_ps1((float)parameters->max_steps);
+	__m128 transparency   = _mm_mul_ps(_mm_sqrt_ps(_mm_sqrt_ps(_mm_div_ps(_mm_cvtepi32_ps(steps), many_max_steps))), _255);
 
-	if(steps < parameters->max_steps)
-		return RGBQUAD {(unsigned char)(255 - char_transparency), (unsigned char)(char_transparency % 2 * 64), char_transparency};
+	for(int ind = 0; ind < 4; ++ind) {
+		int*   pointer_steps 		= (int*)   &steps;
+        float* pointer_transparency = (float*) &transparency;
+        
+        unsigned char char_transparency = (unsigned char)pointer_transparency[ind];
 
-	return RGBQUAD {0, 0, 0, 255};
+		if(pointer_steps[ind] < parameters->max_steps)
+			point_colour[ind] = RGBQUAD {(unsigned char)(255 - char_transparency), (unsigned char)(char_transparency % 2 * 64), char_transparency};
+		else
+			point_colour[ind] = RGBQUAD {0, 0, 0, 255};
+	} 
+
+	return;
 }

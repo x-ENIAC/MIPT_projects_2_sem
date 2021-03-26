@@ -2,6 +2,7 @@
 #define MANDELBROT_H
 
 #include "TXlib.h"
+#include <emmintrin.h>
 
 enum Statuses_type {
 	ALL_IS_OKEY    = 0,
@@ -18,10 +19,12 @@ struct Mandelbrot_params {
 };
 
 struct Coordinates {
-	float x;
-	float y;
-	int step;
+	__m128 x;
+	__m128 y;
+	__m128i step;
 };
+
+
 
 
 const float xC = 0.f, yC = 0.f;
@@ -39,6 +42,6 @@ bool is_escape_pressed();
 
 Coordinates counting_new_coordinates(Coordinates old_coordinates, Mandelbrot_params* parameters);
 
-RGBQUAD get_colour(const int steps, Mandelbrot_params* parameters);
+void get_colour(RGBQUAD point_colour[4], __m128i steps, Mandelbrot_params* parameters);
 
 #endif
