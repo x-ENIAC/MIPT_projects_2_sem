@@ -76,8 +76,8 @@ Statuses_type draw_points(Screen_type* screen) {
 		if(is_escape_pressed())
 			return ESCAPE_PRESSED;
 
-		float start_x = ( (	         - screen->parameters->wigth_screen  / 2.0) * screen->parameters->dx + ROI_X + screen->parameters->x_coord_center ) * screen->parameters->scale, 
-			   start_y = ( ((float)y - screen->parameters->height_screen / 2.0) * screen->parameters->dy + ROI_Y + screen->parameters->y_coord_center ) * screen->parameters->scale;
+		float start_x = ((	        - (float)screen->parameters->wigth_screen / 2.f) * screen->parameters->dx + ROI_X + screen->parameters->x_coord_center ) * screen->parameters->scale, 
+			  start_y = (((float)y - (float)screen->parameters->height_screen / 2.f) * screen->parameters->dy + ROI_Y + screen->parameters->y_coord_center ) * screen->parameters->scale;
 
 		for(int x = 0; x < screen->parameters->wigth_screen; x += 4, start_x += screen->parameters->dx * 4) {
 			if(is_escape_pressed())
@@ -88,8 +88,8 @@ Statuses_type draw_points(Screen_type* screen) {
 
 			Coordinates now_coordinates = {};
 
-			now_coordinates.y = 		    _mm_set_ps1(start_y);
-			now_coordinates.x = _mm_add_ps( _mm_set_ps1(start_x), dx_for_mult);
+			now_coordinates.y = 		   _mm_set_ps1(start_y);
+			now_coordinates.x = _mm_add_ps(_mm_set_ps1(start_x), dx_for_mult);
 
 			Coordinates new_coordinates = counting_new_coordinates(now_coordinates, screen->parameters);			
 
@@ -98,8 +98,6 @@ Statuses_type draw_points(Screen_type* screen) {
 
 			Statuses_type status = ALL_IS_OKEY;
 			for(int ind = 0; ind < 4; ++ind) {
-				//printf("%d\n", y * parameters->wigth_screen + x + ind);
-				//screen->screen_buffer[y * screen->parameters->wigth_screen + x + ind] = point_colour[ind];
 				status = set_pixel_color(screen, x + ind, y, point_colour[ind]);
 				CHECK_STATUS
 			}			
@@ -150,7 +148,7 @@ Coordinates counting_new_coordinates(const Coordinates old_coordinates, const Ma
 	Coordinates new_coordinates = old_coordinates;
 	new_coordinates.step = _mm_setzero_si128();
 
-	__m128 max_distance = _mm_set_ps1( (float)parameters->sqr_max_radius);
+	__m128 max_distance = _mm_set_ps1((float)parameters->sqr_max_radius);
 
 	for(int step = 0; step < parameters->max_steps; ++step) {
 		__m128 mult_xy = _mm_mul_ps(new_coordinates.x, new_coordinates.y);
@@ -177,17 +175,11 @@ void get_colour(RGBQUAD point_colour[4], const __m128i steps, const Mandelbrot_p
 	__m128 many_max_steps = _mm_set_ps1((float)parameters->max_steps);
 	__m128 transparency = _mm_mul_ps(_mm_sqrt_ps(_mm_sqrt_ps(_mm_div_ps(_mm_cvtepi32_ps(steps), many_max_steps))), _160);
 
-	for(int ind = 0; ind < 4; ++ind) {
-		int*   pointer_steps 		= (int*)   &steps;
-        float* pointer_transparency = (float*) &transparency;
-        
-        unsigned char char_transparency = (unsigned char)pointer_transparency[ind];
+	const int* pointer_steps = (const int*) &steps;
+    float* pointer_transparency = (float*) &transparency;
 
-		if(pointer_steps[ind] < parameters->max_steps)
-			point_colour[ind] = RGBQUAD {(unsigned char)((255 - char_transparency) * 2), (unsigned char)(char_transparency % 21 * 64), (unsigned char)(char_transparency % 200)};
-		else
-			point_colour[ind] = BLACK_COLOUR;
-	} 
+	for(int ind = 0; ind < 4; ++ind)
+		point_colour[ind] = calculate_colour(pointer_steps[ind], parameters->max_steps, (unsigned char)pointer_transparency[ind]);
 
 	return;
 }
@@ -198,4 +190,11 @@ Statuses_type set_pixel_color(Screen_type* screen, const int x_coord, const int 
 
 	screen->screen_buffer[y_coord * screen->parameters->wigth_screen + x_coord] = color;
 	return ALL_IS_OKEY;
+}
+
+RGBQUAD calculate_colour(int number_of_step, const int max_count_of_steps, const unsigned char char_transparency) {
+	if(number_of_step < max_count_of_steps)
+		return RGBQUAD {(unsigned char)((255 - char_transparency) * 1.8), (unsigned char)(char_transparency % 21 * 64), (unsigned char)(char_transparency % 200)};
+
+	return BLACK_COLOUR;
 }

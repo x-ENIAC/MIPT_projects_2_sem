@@ -18,8 +18,8 @@ int main() {
 		//1 / 800.f,		// dy
 		0.f,			// x_coord_center
 		0.f,			// y_coord_center
-		10.f,			// small_delta
-		100.f,			// big_delta
+		5.f,			// small_delta
+		50.f,			// big_delta
 		1 / 800.f,
 		1 / 800.f
 	};

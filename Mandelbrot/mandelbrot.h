@@ -18,8 +18,7 @@ struct Mandelbrot_params {
 	float scale;
 	float x_coord_center, y_coord_center;
 	float small_delta, big_delta;
-		float dx, dy;
-
+	float dx, dy;
 };
 
 struct Screen_type {
@@ -70,5 +69,7 @@ Coordinates counting_new_coordinates(const Coordinates old_coordinates, const Ma
 void get_colour(RGBQUAD point_colour[4], const __m128i steps, const Mandelbrot_params* parameters);
 
 Statuses_type set_pixel_color(Screen_type* screen, const int x_coord, const int y_coord, const RGBQUAD color);
+
+RGBQUAD calculate_colour(int number_of_step, const int max_count_of_steps, const unsigned char char_transparency);
 
 #endif
