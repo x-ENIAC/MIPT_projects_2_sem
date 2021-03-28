@@ -14,15 +14,26 @@ int main() {
 		2000,			// max_steps
 		100,			// sqr_max_radius
 		1.0,			// scale
-		1 / 800.f,		// dx
-		1 / 800.f		// dy
+		//1 / 800.f,		// dx
+		//1 / 800.f,		// dy
+		0.f,			// x_coord_center
+		0.f,			// y_coord_center
+		10.f,			// small_delta
+		100.f,			// big_delta
+		1 / 800.f,
+		1 / 800.f
 	};
 
-    Statuses_type status = start_work_with_window(&parameters);
+	Statuses_type status = ALL_IS_OKEY;
+	status = start_work_with_window(&parameters);
     CHECK_STATUS
 
-    status = draw_mandelbrot(&parameters);
+	Screen_type* screen = screen_new(&parameters);    
+
+    status = draw_mandelbrot(screen);
     CHECK_STATUS
+
+    //status
 
 
 	return ALL_IS_OKEY;

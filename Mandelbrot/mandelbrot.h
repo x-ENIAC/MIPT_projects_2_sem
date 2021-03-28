@@ -6,7 +6,8 @@
 
 enum Statuses_type {
 	ALL_IS_OKEY    = 0,
-	ESCAPE_PRESSED = 10
+	ESCAPE_PRESSED = 1,
+	BAD_POINTERS   = 2,
 };
 
 struct Mandelbrot_params {
@@ -15,7 +16,15 @@ struct Mandelbrot_params {
 	int max_steps;
 	int sqr_max_radius;
 	float scale;
-	float dx, dy;
+	float x_coord_center, y_coord_center;
+	float small_delta, big_delta;
+		float dx, dy;
+
+};
+
+struct Screen_type {
+	RGBQUAD* screen_buffer;
+	Mandelbrot_params* parameters;
 };
 
 struct Coordinates {
@@ -24,24 +33,42 @@ struct Coordinates {
 	__m128i step;
 };
 
-
-
-
-const float xC = 0.f, yC = 0.f;
+const RGBQUAD BLACK_COLOUR = RGBQUAD {0, 0, 0, 255};
 
 const float ROI_X = -1.325f,
             ROI_Y = 0;    
 
-Statuses_type start_work_with_window(Mandelbrot_params* parameters);
+//Statuses_type screen_new(Mandelbrot_params* parameters, Screen_type* screen);            
+Screen_type* screen_new(Mandelbrot_params* parameters);            
 
-Statuses_type draw_mandelbrot(Mandelbrot_params* parameters);
+Statuses_type start_work_with_window(const Mandelbrot_params* parameters);
 
-Statuses_type draw_points(Mandelbrot_params* parameters);
+Statuses_type draw_mandelbrot(Screen_type* screen);
+
+Statuses_type draw_points(Screen_type* screen);
 
 bool is_escape_pressed();
 
-Coordinates counting_new_coordinates(Coordinates old_coordinates, Mandelbrot_params* parameters);
+bool is_zoom_in_pressed();
 
-void get_colour(RGBQUAD point_colour[4], __m128i steps, Mandelbrot_params* parameters);
+bool is_zoom_out_pressed();
+
+bool is_shift_up_pressed();
+
+bool is_shift_down_pressed();
+
+bool is_shift_left_pressed();
+
+bool is_shift_right_pressed();
+
+bool is_shift_pressed();
+
+bool is_1_pressed();
+
+Coordinates counting_new_coordinates(const Coordinates old_coordinates, const Mandelbrot_params* parameters);
+
+void get_colour(RGBQUAD point_colour[4], const __m128i steps, const Mandelbrot_params* parameters);
+
+Statuses_type set_pixel_color(Screen_type* screen, const int x_coord, const int y_coord, const RGBQUAD color);
 
 #endif
