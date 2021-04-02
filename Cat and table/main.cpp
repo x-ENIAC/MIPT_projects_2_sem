@@ -29,8 +29,8 @@ int main() {
 	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 
 
-	//status = start_overlaying_pictures();
-	//CHECK_STATUS
+	status = start_overlaying_pictures(background_picture, foreground_picture);
+	CHECK_STATUS
 
 
 	return ALL_IS_OKEY;
