@@ -22,7 +22,10 @@ struct Screen_type {
 };
 
 const int count_repeats_in_measurements = 500;
-const int max_colour = 255;
+const int MAX_COLOUR = 256;
+
+const int X_OFFSET = 215;
+const int Y_OFFSET = 300;
 
 Screen_type* screen_new(const char* picture_name);
 
@@ -36,7 +39,7 @@ Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_
 
 Statuses_type measurements(Screen_type* background_picture, Screen_type* foreground_picture);
 
-Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture);
+Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture, const int x_offset, const int y_offset);
 
 bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* foreground_picture);
 

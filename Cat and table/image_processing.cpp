@@ -111,7 +111,6 @@ Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_
 
 	printf("begin overlaying pictures...\n");
 
-	//overlaying_pictures(background_picture, foreground_picture);
 	measurements(background_picture, foreground_picture);
 
 	printf("begin show_result_images...\n");
@@ -129,7 +128,7 @@ Statuses_type measurements(Screen_type* background_picture, Screen_type* foregro
 
 	Statuses_type status = ALL_IS_OKEY;
 	for(int measurement = 0; measurement < count_repeats_in_measurements; ++measurement) {
-		status = overlaying_pictures(background_picture, foreground_picture);
+		status = overlaying_pictures(background_picture, foreground_picture, X_OFFSET, Y_OFFSET);
 		CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 	}
 
@@ -140,7 +139,7 @@ Statuses_type measurements(Screen_type* background_picture, Screen_type* foregro
 	return ALL_IS_OKEY;
 }
 
-Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture) {
+Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture, const int x_offset, const int y_offset) {
 	if(!background_picture || !foreground_picture)
 		return BAD_POINTERS;
 
@@ -150,10 +149,10 @@ Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* 
 
 	for(int x = 0; x < foreground_picture->height_screen; ++x) {
 		for(int y = 0; y < foreground_picture->wigth_screen; ++y) {
-			Colour background_pixel = background_picture->pixels[x][y];
+			Colour background_pixel = background_picture->pixels[x + x_offset][y + y_offset];
 			Colour foreground_pixel = foreground_picture->pixels[x][y];
 
-			background_picture->pixels[x][y] = pixel_transform_on_overlay(background_pixel, foreground_pixel);
+			background_picture->pixels[x + x_offset][y + y_offset] = pixel_transform_on_overlay(background_pixel, foreground_pixel);
 		}
 	}
 
@@ -174,13 +173,13 @@ bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* fore
 Colour pixel_transform_on_overlay(const Colour background_pixel, const Colour foreground_pixel) {
 	Colour result_pixel = {0, 0, 0, 0};
 
-	float alpha = (float)foreground_pixel.alpha / (float)max_colour;
+	float alpha = (float)foreground_pixel.alpha;
 
-	result_pixel.red   = (float)foreground_pixel.red   * alpha + (float)background_pixel.red   * (1 - alpha);
-	result_pixel.green = (float)foreground_pixel.green * alpha + (float)background_pixel.green * (1 - alpha);
-	result_pixel.blue  = (float)foreground_pixel.blue  * alpha + (float)background_pixel.blue  * (1 - alpha);
+	result_pixel.red   = ((int)((float)foreground_pixel.red   * alpha + (float)background_pixel.red   * (MAX_COLOUR - alpha)) >> 8);
+	result_pixel.green = ((int)((float)foreground_pixel.green * alpha + (float)background_pixel.green * (MAX_COLOUR - alpha)) >> 8);
+	result_pixel.blue  = ((int)((float)foreground_pixel.blue  * alpha + (float)background_pixel.blue  * (MAX_COLOUR - alpha)) >> 8);
 
-	result_pixel.alpha = max_colour;
+	result_pixel.alpha = MAX_COLOUR - 1;
 
 	return result_pixel;
 }
