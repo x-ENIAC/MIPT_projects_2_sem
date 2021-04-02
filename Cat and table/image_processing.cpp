@@ -35,7 +35,7 @@ Statuses_type screen_construct(Screen_type* screen, const char* picture_name) {
 	if(!screen)
 		return BAD_POINTERS;
 
-	sf::Image image;
+	sf::Image image = {};
 	image.loadFromFile(picture_name);
 
 	sf::Vector2u image_size = image.getSize();
@@ -109,9 +109,14 @@ Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_
 
 	sprite.setTexture(texture);
 
-	overlaying_pictures(background_picture, foreground_picture);
+	printf("begin overlaying pictures...\n");
 
-	show_result_image(background_picture, sprite, texture);
+	//overlaying_pictures(background_picture, foreground_picture);
+	measurements(background_picture, foreground_picture);
+
+	printf("begin show_result_images...\n");
+
+	show_result_image(background_picture, &sprite, &texture);
 
 	return ALL_IS_OKEY;
 }
@@ -130,7 +135,7 @@ Statuses_type measurements(Screen_type* background_picture, Screen_type* foregro
 
 	clock_t end_time = clock();
 
-	printf("Time passed: %f\n", (end_time - start_time) / (float)count_repeats_in_measurements);
+	printf("Time passed: %f ms\n", (end_time - start_time) / (float)count_repeats_in_measurements);
 
 	return ALL_IS_OKEY;
 }
@@ -169,7 +174,7 @@ bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* fore
 Colour pixel_transform_on_overlay(const Colour background_pixel, const Colour foreground_pixel) {
 	Colour result_pixel = {0, 0, 0, 0};
 
-	float alpha = (float)foreground_pixel.alpha / max_colour;
+	float alpha = (float)foreground_pixel.alpha / (float)max_colour;
 
 	result_pixel.red   = (float)foreground_pixel.red   * alpha + (float)background_pixel.red   * (1 - alpha);
 	result_pixel.green = (float)foreground_pixel.green * alpha + (float)background_pixel.green * (1 - alpha);
@@ -180,7 +185,7 @@ Colour pixel_transform_on_overlay(const Colour background_pixel, const Colour fo
 	return result_pixel;
 }
 
-void show_result_image(Screen_type* background_picture, sf::Sprite sprite, sf::Texture texture) {
+void show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::Texture* texture) {
 	sf::Image result_image = {};
 	result_image.create(background_picture->wigth_screen, background_picture->height_screen);
 
@@ -195,9 +200,9 @@ void show_result_image(Screen_type* background_picture, sf::Sprite sprite, sf::T
 		}
 	}
 
-	texture.update(result_image);
+	texture->update(result_image);
 
-	display_picture(sprite, background_picture->wigth_screen, background_picture->height_screen);
+	display_picture(*sprite, background_picture->wigth_screen, background_picture->height_screen);
 }
 
 void display_picture(sf::Sprite sprite, const int wigth_screen, const int height_screen) {
