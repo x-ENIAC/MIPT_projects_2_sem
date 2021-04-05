@@ -4,11 +4,13 @@
 #include "mandelbrot.h"
 #include <math.h>
 #include <emmintrin.h>
+#include <ctime>
 
-#define CHECK_STATUS									\
-	if(status != ALL_IS_OKEY) {							\
-		printf("Bad; status = %d\n", status);			\
+#define CHECK_STATUS																						\
+	if(status != ALL_IS_OKEY) {																				\
+		printf("Bad; code status = %d\n, message: %s\n", status, TEXT_STATUSES_TYPE[status]);				\
 	}
+
 
 const __m128 _3210_dx  = _mm_set_ps  (3.f, 2.f, 1.f, 0.f);
 const __m128 _255  	   = _mm_set_ps1 (255.f);
@@ -45,11 +47,16 @@ Statuses_type draw_mandelbrot(Screen_type* screen) {
 
 			screen_update(screen);
 
+			//clock_t start_time = clock();
 			Statuses_type now_status = draw_points(screen);
 			if(now_status == ESCAPE_PRESSED) {
 				is_window_open = false;
-				break;			
+				break;							
 			}
+
+			//clock_t end_time = clock();
+
+			//printf("Time passed: %ld ms\n", (end_time - start_time));					
 
 			printf("\t\r%.0lf", txGetFPS());
 	        txSleep();
@@ -206,4 +213,3 @@ Statuses_type screen_delete(Screen_type* screen) {
 
 	return ALL_IS_OKEY;
 }
-/* лдвш, 2 школа */
