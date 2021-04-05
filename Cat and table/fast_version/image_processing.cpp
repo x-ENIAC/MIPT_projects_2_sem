@@ -1,8 +1,10 @@
 #include <stdio.h>
-#include <stdlib.h> 
+//#include <stdlib.h> 
 #include "image_processing.h"
 #include <SFML/Graphics.hpp>
-
+#include <emmintrin.h>
+//#include <smmintrin.h>
+#include <smmintrin.h>
 
 #define CHECK_STATUS									\
 	if(status != ALL_IS_OKEY) {							\
@@ -43,23 +45,17 @@ Statuses_type screen_construct(Screen_type* screen, const char* picture_name) {
 	screen->wigth_screen  = image_size.x;
 	screen->height_screen = image_size.y;
 
-	screen->pixels = (Colour**)calloc(screen->height_screen, sizeof(Colour*));
+	screen->pixels = (Colour*)calloc(screen->height_screen * screen->wigth_screen, sizeof(Colour));
 
 	if(!screen->pixels)
 		return BAD_POINTERS;
-
-	for(int i = 0; i < screen->wigth_screen; ++i) {
-		screen->pixels[i] = (Colour*)calloc(screen->wigth_screen, sizeof(Colour));
-		if(!screen->pixels[i])
-			return BAD_POINTERS;
-	}
 
 	Statuses_type status = ALL_IS_OKEY;
 
 	for(int i = 0; i < screen->height_screen; ++i) {
 		for(int j = 0; j < screen->wigth_screen; ++j) {
 			sf::Color color_now_pixel = image.getPixel(j, i);
-			set_pixel_color(screen->pixels, i, j, color_now_pixel);
+			set_pixel_color(screen, i, j, color_now_pixel);
 			CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 		}
 	}
@@ -68,14 +64,14 @@ Statuses_type screen_construct(Screen_type* screen, const char* picture_name) {
 
 }
 
-Statuses_type set_pixel_color(Colour** pixels, const int line, const int column, sf::Color color_now_pixel) {
-	if(!pixels || !pixels[line])
+Statuses_type set_pixel_color(Screen_type* screen, const int line, const int column, sf::Color color_now_pixel) {
+	if(!screen || !screen->pixels) // || !pixels[line])
 		return BAD_POINTERS;
 
-	pixels[line][column].red   = color_now_pixel.r;
-	pixels[line][column].green = color_now_pixel.g;
-	pixels[line][column].blue  = color_now_pixel.b;
-	pixels[line][column].alpha = color_now_pixel.a;
+	screen->pixels[line * screen->wigth_screen + column].red   = color_now_pixel.r;
+	screen->pixels[line * screen->wigth_screen + column].green = color_now_pixel.g;
+	screen->pixels[line * screen->wigth_screen + column].blue  = color_now_pixel.b;
+	screen->pixels[line * screen->wigth_screen + column].alpha = color_now_pixel.a;
 
 	return ALL_IS_OKEY;
 }
@@ -83,9 +79,6 @@ Statuses_type set_pixel_color(Colour** pixels, const int line, const int column,
 Statuses_type screen_delete(Screen_type* screen) {
 	if(!screen || !screen->pixels)
 		return ALL_IS_OKEY;
-
-	for(int i = 0; i < screen->height_screen; ++i)
-		free(screen->pixels[i]);
 
 	free(screen->pixels);
 
@@ -139,27 +132,121 @@ Statuses_type measurements(Screen_type* background_picture, Screen_type* foregro
 	return ALL_IS_OKEY;
 }
 
-Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture, const int x_offset, const int y_offset) {
+Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture, int x_offset, int y_offset) {
 	if(!background_picture || !foreground_picture)
 		return BAD_POINTERS;
 
-	if(!is_correct_pictures_size(background_picture, foreground_picture))
-		return BAD_PICTURES_SIZE;
-	
+	if(!is_correct_pictures_size(background_picture, foreground_picture) || x_offset < 0 || y_offset < 0)
+		return BAD_PICTURES_SIZE;	
 
-	for(int x = 0; x < foreground_picture->height_screen; ++x) {
-		for(int y = 0; y + 3 < foreground_picture->wigth_screen; y += 4) {
-			Colour background_pixel[4] = {}; 	for(int ind = 0; ind < 4; ++ind) background_pixel[ind] = background_picture->pixels[x + x_offset][y + y_offset + ind];
-			Colour foreground_pixel[4] = {};    for(int ind = 0; ind < 4; ++ind) foreground_pixel[ind] = foreground_picture->pixels[x][y + ind];
+	if (x_offset >= background_picture->wigth_screen)
+		x_offset = background_picture->wigth_screen - x_offset;
 
-			Colour transform_pixels[4] = {};
-			pixel_transform_on_overlay(background_pixel, foreground_pixel, transform_pixels);
-			for(int ind = 0; ind < 4; ++ind)
-				background_picture->pixels[x + x_offset][y + y_offset + ind] = transform_pixels[ind];
+	if (y_offset >= background_picture->height_screen)
+		y_offset = background_picture->height_screen - y_offset;	
+
+	int x_background = x_offset;
+	int y_background = y_offset;
+
+	for(int y_foreground = 0; y_foreground < foreground_picture->height_screen; ++y_foreground) {
+		y_background = y_offset;
+		for(int x_foreground = 0; x_foreground + 3 < foreground_picture->wigth_screen; x_foreground += 4) {
+
+			// background [ b7 | b6 | b5 | b4 | b3 | b2 | b1 | b0] = [r7 g7 b7 a7 | ... ]
+			__m128i background_pixels = _mm_loadu_si128((__m128i*)(background_picture->pixels + x_background * background_picture->wigth_screen + y_background));
+
+			// foreground [ f7 | f6 | f5 | f4 | f3 | f2 | f1 | f0] = [r7 g7 b7 a7 | ... ]
+			__m128i foreground_pixels = _mm_loadu_si128((__m128i*)(foreground_picture->pixels + y_foreground * foreground_picture->wigth_screen + x_foreground));
+
+			// [0 a3 0 r3 | 0 g3 0 b3 | ... | 0 a0 0 r0 | 0 g0 0 b0] - background
+			__m128i background_four_lower = _mm_cvtepu8_epi16(background_pixels);
+
+			// [0 a7 0 r7 | 0 g7 0 b7 | ... | 0 a4 0 r4 | 0 g4 0 b4] - background
+			__m128i background_four_upper = _mm_cvtepu8_epi16(_mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(background_pixels), _mm_castsi128_ps(background_pixels))));
+
+			// [0 a3 0 r3 | 0 g3 0 b3 | ... | 0 a0 0 r0 | 0 g0 0 b0] - foreground
+			__m128i foreground_four_lower = _mm_cvtepu8_epi16(foreground_pixels);
+
+			// [0 a7 0 r7 | 0 g7 0 b7 | ... | 0 a4 0 r4 | 0 g4 0 b4] - foreground
+			__m128i foreground_four_upper = _mm_cvtepu8_epi16(_mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(foreground_pixels), _mm_castsi128_ps(foreground_pixels))));
+
+			__m128i mask_alpha_for_upper = _mm_set_epi8(-1, 12, -1, 12,
+												        -1, 12, -1, 12,
+													    -1,  8, -1,  8,
+											            -1,  8, -1,  8);
+
+			__m128i mask_alpha_for_lower = _mm_set_epi8(-1, 4, -1, 4,
+												        -1, 4, -1, 4,
+													    -1, 0, -1, 0,
+											            -1, 0, -1, 0);
+
+
+
+			// [0 a3 0 a3 | 0 a3 0 a3 | ... | 0 a0 0 a0 | 0 a0 0 a0] - background
+			__m128i alpha_lower = _mm_shuffle_epi8(foreground_pixels, mask_alpha_for_lower);
+
+			// [0 a7 0 a7 | 0 a7 0 a7 | ... | 0 a4 0 a4 | 0 a4 0 a4] - background
+			__m128i alpha_upper = _mm_shuffle_epi8(foreground_pixels, mask_alpha_for_upper);
+
+			__m128i inverse_alpha_lower = _mm_sub_epi16(_mm_set_epi16(256, 256, 256, 256,
+			 														  			  256, 256, 256, 256), alpha_lower);
+			__m128i inverse_alpha_upper = _mm_sub_epi16(_mm_set_epi16(256, 256, 256, 256,
+			 														  			  256, 256, 256, 256), alpha_upper);
+
+			background_four_lower = _mm_mullo_epi16(background_four_lower, inverse_alpha_lower);
+			background_four_upper = _mm_mullo_epi16(background_four_upper, inverse_alpha_upper);
+
+			foreground_four_lower = _mm_mullo_epi16(foreground_four_lower, alpha_lower);
+			foreground_four_upper = _mm_mullo_epi16(foreground_four_upper, alpha_upper);
+
+			// [A3 a3 R3 r3 | G3 g3 B3 b3 | ... | A0 a0 R0 r0 | G0 g0 B0 b0]
+			foreground_four_lower = _mm_add_epi16(background_four_lower, foreground_four_lower);
+
+			// [A7 a7 R7 r7 | G7 g7 B7 b7 | ... | A4 a4 R4 r4 | G4 g4 B4 b4]
+			foreground_four_upper = _mm_add_epi16(background_four_upper, foreground_four_upper);
+
+			foreground_four_lower = _mm_srli_epi16(foreground_four_lower, 8);
+			foreground_four_upper = _mm_srli_epi16(foreground_four_upper, 8);			
+
+
+			__m128i mask_for_lowers = _mm_set_epi8(-1, -1, -1, -1,
+												  -1, -1, -1, -1,
+												  14, 12, 10,  8,
+												   6,  4,  2,  0);
+
+			__m128i mask_for_uppers = _mm_set_epi8(14, 12, 10, 8,
+												   6,  4,  2,  0,
+												  -1, -1, -1, -1,
+												  -1, -1, -1, -1);			
+			// [-- -- -- -- | -- -- -- -- | -- -- -- -- | -- -- -- -- | A3 R3 G3 B3 | .... | A0 R0 G0 B0 ]
+			foreground_pixels = _mm_shuffle_epi8(foreground_four_lower, mask_for_uppers);
+			
+
+			foreground_four_upper = _mm_shuffle_epi8(foreground_four_upper, mask_for_uppers);
+
+
+			//result_pixel = _mm_shuffle_epi8(lower_pixels, mask_for_uppers);
+			foreground_pixels = _mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(foreground_four_upper), _mm_castsi128_ps(foreground_pixels)));
+
+			// [A7 R7 G7 B7 | A6 R6 G6 B6 | -- -- -- -- | -- -- -- -- | A3 R3 G3 B3 | .... | A0 R0 G0 B0 ]
+			//result_pixel = _mm_shuffle_epi8(upper_pixels, mask_for_uppers);
+			_mm_storeu_si128((__m128i*)(background_picture->pixels + x_background * background_picture->wigth_screen + y_background), foreground_pixels);
+
+			y_background += 4;
 		}
+		++x_background;
 	}
 
 	return ALL_IS_OKEY;
+}
+
+void set_4_numbers_from_array_to_m128(__m128* big_number, const int first_number, const int second_number, const int third_number, const int fourth_number) {
+	if(!big_number)
+		return;
+
+	*big_number = _mm_castsi128_ps(_mm_set_epi32(first_number, second_number, third_number, fourth_number)); // [fourth | third | second | first]
+
+	return;
 }
 
 bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* foreground_picture) {
@@ -173,22 +260,18 @@ bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* fore
 	return true;
 }
 
-void pixel_transform_on_overlay(const Colour background_pixel[4], const Colour foreground_pixel[4], Colour result_pixel[4]) {
-	for(int ind = 0; ind < 4; ++ind) result_pixel[ind] = {0, 0, 0, 0};
+Colour pixel_transform_on_overlay(const Colour background_pixel, const Colour foreground_pixel) {
+	Colour result_pixel = {0, 0, 0, 0};
 
-	float alpha[4] = {}; 
+	int alpha = 140;//(int)foreground_pixel.alpha;
 
-	for(int ind = 0; ind < 4; ++ind) {
-		alpha[ind] = (float)foreground_pixel[ind].alpha;
+	result_pixel.red   = ((int)((int)foreground_pixel.red   * alpha + (int)background_pixel.red   * (MAX_COLOUR - alpha)) >> 8); 
+	result_pixel.green = ((int)((int)foreground_pixel.green * alpha + (int)background_pixel.green * (MAX_COLOUR - alpha)) >> 8);
+	result_pixel.blue  = ((int)((int)foreground_pixel.blue  * alpha + (int)background_pixel.blue  * (MAX_COLOUR - alpha)) >> 8);
 
-		result_pixel[ind].red   = ((int)((float)foreground_pixel[ind].red   * alpha[ind] + (float)background_pixel[ind].red   * (MAX_COLOUR - alpha[ind])) >> 8);
-		result_pixel[ind].green = ((int)((float)foreground_pixel[ind].green * alpha[ind] + (float)background_pixel[ind].green * (MAX_COLOUR - alpha[ind])) >> 8);
-		result_pixel[ind].blue  = ((int)((float)foreground_pixel[ind].blue  * alpha[ind] + (float)background_pixel[ind].blue  * (MAX_COLOUR - alpha[ind])) >> 8);
+	result_pixel.alpha = MAX_COLOUR - 1;
 
-		result_pixel[ind].alpha = MAX_COLOUR - 1;
-	}
-
-	return;
+	return result_pixel;
 }
 
 void show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::Texture* texture) {
@@ -197,10 +280,10 @@ void show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::
 
 	for(int x = 0; x < background_picture->height_screen; ++x) {
 		for(int y = 0; y < background_picture->wigth_screen; ++y) {
-			sf::Color now_color(background_picture->pixels[x][y].red,
-								background_picture->pixels[x][y].green,
-								background_picture->pixels[x][y].blue,
-								background_picture->pixels[x][y].alpha);
+			sf::Color now_color(background_picture->pixels[x * background_picture->wigth_screen + y].red,
+								background_picture->pixels[x * background_picture->wigth_screen + y].green,
+								background_picture->pixels[x * background_picture->wigth_screen + y].blue,
+								background_picture->pixels[x * background_picture->wigth_screen + y].alpha);
 
 			result_image.setPixel(y, x, now_color);
 		}
@@ -226,3 +309,39 @@ void display_picture(sf::Sprite sprite, const int wigth_screen, const int height
         window.display();
 	}
 }
+
+
+/*
+		/*(-1, 30, -1, 30,
+														 -1, 30, -1, 30,
+														 -1, 22, -1, 22,
+														 -1, 22, -1, 22,
+														 -1, 14, -1, 14,
+														 -1, 14, -1, 14,
+														 -1,  6, -1,  6,
+														 -1,  6, -1,  6);*/
+
+
+
+/*
+			__m128 mask_for_lowers = _mm_set_epi8(-1, -1, -1, -1,
+												  -1, -1, -1, -1,
+												  -1, -1, -1, -1,
+												  -1, -1, -1, -1,
+												  31, 29, 27, 25,
+												  23, 21, 19, 17,
+												  15, 13, 11,  9,
+												   7,  5,  3,  1);
+			// [-- -- -- -- | -- -- -- -- | -- -- -- -- | -- -- -- -- | A3 R3 G3 B3 | .... | A0 R0 G0 B0 ]
+			__m128 result_pixel = _mm_shuffle_epi8(lower_pixels, mask_for_lowers);
+
+
+			__m128 mask_for_uppers = _mm_set_epi8(31, 29, 27, 25,
+												  23, 21, 19, 17,
+												  15, 13, 11,  9,
+												   7,  5,  3,  1,
+												  -1, -1, -1, -1,
+												  -1, -1, -1, -1,
+												  -1, -1, -1, -1,
+												  -1, -1, -1, -1);	
+*/
