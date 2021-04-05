@@ -173,11 +173,11 @@ bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* fore
 Colour pixel_transform_on_overlay(const Colour background_pixel, const Colour foreground_pixel) {
 	Colour result_pixel = {0, 0, 0, 0};
 
-	float alpha = (float)foreground_pixel.alpha;
+	int alpha = (int)foreground_pixel.alpha;
 
-	result_pixel.red   = ((int)((float)foreground_pixel.red   * alpha + (float)background_pixel.red   * (MAX_COLOUR - alpha)) >> 8);
-	result_pixel.green = ((int)((float)foreground_pixel.green * alpha + (float)background_pixel.green * (MAX_COLOUR - alpha)) >> 8);
-	result_pixel.blue  = ((int)((float)foreground_pixel.blue  * alpha + (float)background_pixel.blue  * (MAX_COLOUR - alpha)) >> 8);
+	result_pixel.red   = ((int)((int)foreground_pixel.red   * alpha + (int)background_pixel.red   * (MAX_COLOUR - alpha)) >> 8);
+	result_pixel.green = ((int)((int)foreground_pixel.green * alpha + (int)background_pixel.green * (MAX_COLOUR - alpha)) >> 8);
+	result_pixel.blue  = ((int)((int)foreground_pixel.blue  * alpha + (int)background_pixel.blue  * (MAX_COLOUR - alpha)) >> 8);
 
 	result_pixel.alpha = MAX_COLOUR - 1;
 

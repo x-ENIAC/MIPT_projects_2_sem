@@ -24,7 +24,7 @@ struct Screen_type {
 const int count_repeats_in_measurements = 500;
 const int MAX_COLOUR = 256;
 
-const int X_OFFSET = 400;	//215;
+const int X_OFFSET = 215;
 const int Y_OFFSET = 300;
 
 Screen_type* screen_new(const char* picture_name);
@@ -36,8 +36,6 @@ Statuses_type set_pixel_color(Screen_type* screen, const int line, const int col
 Statuses_type screen_delete(Screen_type* screen);
 
 Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture);
-
-//void set_4_numbers_from_array_to_m128(__m128* big_number, const int first_number, const int second_number, const int third_number, const int fourth_number);
 
 Statuses_type measurements(Screen_type* background_picture, Screen_type* foreground_picture);
 

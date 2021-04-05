@@ -3,7 +3,7 @@
 #include "image_processing.h"
 #include <SFML/Graphics.hpp>
 #include <emmintrin.h>
-//#include <smmintrin.h>
+#include <immintrin.h>
 #include <smmintrin.h>
 
 #define CHECK_STATUS									\
@@ -148,89 +148,141 @@ Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* 
 	int x_background = x_offset;
 	int y_background = y_offset;
 
+    __m128i c256 = _mm_set1_epi16(256);
+
 	for(int y_foreground = 0; y_foreground < foreground_picture->height_screen; ++y_foreground) {
 		y_background = y_offset;
 		for(int x_foreground = 0; x_foreground + 3 < foreground_picture->wigth_screen; x_foreground += 4) {
 
-			// background [ b7 | b6 | b5 | b4 | b3 | b2 | b1 | b0] = [r7 g7 b7 a7 | ... ]
 			__m128i background_pixels = _mm_loadu_si128((__m128i*)(background_picture->pixels + x_background * background_picture->wigth_screen + y_background));
 
-			// foreground [ f7 | f6 | f5 | f4 | f3 | f2 | f1 | f0] = [r7 g7 b7 a7 | ... ]
 			__m128i foreground_pixels = _mm_loadu_si128((__m128i*)(foreground_picture->pixels + y_foreground * foreground_picture->wigth_screen + x_foreground));
 
-			// [0 a3 0 r3 | 0 g3 0 b3 | ... | 0 a0 0 r0 | 0 g0 0 b0] - background
-			__m128i background_four_lower = _mm_cvtepu8_epi16(background_pixels);
+			__m128i lower_mask = _mm_set_epi8(0x80, 7, 0x80, 6,
+											  0x80, 5, 0x80, 4,
+											  0x80, 3, 0x80, 2,
+											  0x80, 1, 0x80, 0);
 
-			// [0 a7 0 r7 | 0 g7 0 b7 | ... | 0 a4 0 r4 | 0 g4 0 b4] - background
-			__m128i background_four_upper = _mm_cvtepu8_epi16(_mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(background_pixels), _mm_castsi128_ps(background_pixels))));
+			__m128i upper_mask = _mm_set_epi8(0x80, 15, 0x80, 14,
+											  0x80, 13, 0x80, 12,
+											  0x80, 11, 0x80, 10,
+											  0x80,  9, 0x80,  8);			
 
-			// [0 a3 0 r3 | 0 g3 0 b3 | ... | 0 a0 0 r0 | 0 g0 0 b0] - foreground
-			__m128i foreground_four_lower = _mm_cvtepu8_epi16(foreground_pixels);
+			__m128i lower_background = _mm_shuffle_epi8(background_pixels, lower_mask);
+			__m128i upper_background = _mm_shuffle_epi8(background_pixels, upper_mask);
 
-			// [0 a7 0 r7 | 0 g7 0 b7 | ... | 0 a4 0 r4 | 0 g4 0 b4] - foreground
-			__m128i foreground_four_upper = _mm_cvtepu8_epi16(_mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(foreground_pixels), _mm_castsi128_ps(foreground_pixels))));
+			__m128i lower_foreground = _mm_shuffle_epi8(foreground_pixels, lower_mask);
+			__m128i upper_foreground = _mm_shuffle_epi8(foreground_pixels, upper_mask);	
 
-			__m128i mask_alpha_for_upper = _mm_set_epi8(-1, 12, -1, 12,
-												        -1, 12, -1, 12,
-													    -1,  8, -1,  8,
-											            -1,  8, -1,  8);
+	
+			__m128i lower_mask_for_alpha = _mm_set_epi8(-1,  4, -1,  4,
+												   		-1,  4,  -1,  4,
+												   		-1,  0,  -1,  0,
+												   		-1,  0,  -1,  0);
 
-			__m128i mask_alpha_for_lower = _mm_set_epi8(-1, 4, -1, 4,
-												        -1, 4, -1, 4,
-													    -1, 0, -1, 0,
-											            -1, 0, -1, 0);
+			__m128i upper_mask_for_alpha = _mm_set_epi8(-1, 12, -1, 12,
+												  		-1, 12, -1, 12,
+												   		-1,  8,  -1,  8,
+												   		-1,  8,  -1,  8);	
 
+			__m128i alpha_lower = _mm_shuffle_epi8(foreground_pixels, lower_mask_for_alpha);
+			__m128i alpha_upper = _mm_shuffle_epi8(foreground_pixels, upper_mask_for_alpha);
 
+			__m128i inverse_lower_mask_for_alpha = _mm_sub_epi16(c256, alpha_lower);
+			__m128i inverse_upper_mask_for_alpha = _mm_sub_epi16(c256, alpha_upper);
 
-			// [0 a3 0 a3 | 0 a3 0 a3 | ... | 0 a0 0 a0 | 0 a0 0 a0] - background
-			__m128i alpha_lower = _mm_shuffle_epi8(foreground_pixels, mask_alpha_for_lower);
+			lower_foreground = _mm_mullo_epi16(lower_foreground, alpha_lower);
+			upper_foreground = _mm_mullo_epi16(upper_foreground, alpha_upper);
 
-			// [0 a7 0 a7 | 0 a7 0 a7 | ... | 0 a4 0 a4 | 0 a4 0 a4] - background
-			__m128i alpha_upper = _mm_shuffle_epi8(foreground_pixels, mask_alpha_for_upper);
+			lower_background = _mm_mullo_epi16(lower_background, inverse_lower_mask_for_alpha);
+			upper_background = _mm_mullo_epi16(upper_background, inverse_upper_mask_for_alpha);
 
-			__m128i inverse_alpha_lower = _mm_sub_epi16(_mm_set_epi16(256, 256, 256, 256,
-			 														  			  256, 256, 256, 256), alpha_lower);
-			__m128i inverse_alpha_upper = _mm_sub_epi16(_mm_set_epi16(256, 256, 256, 256,
-			 														  			  256, 256, 256, 256), alpha_upper);
+			lower_background = _mm_add_epi16(lower_background, lower_foreground);
+			upper_background = _mm_add_epi16(upper_background, upper_foreground);
 
-			background_four_lower = _mm_mullo_epi16(background_four_lower, inverse_alpha_lower);
-			background_four_upper = _mm_mullo_epi16(background_four_upper, inverse_alpha_upper);
+			__m128i mask_for_result = _mm_set_epi8(15, 13, 11,  9,
+												    7,  5,  3,  1,
+												   0x80, 0x80, 0x80, 0x80,
+												   0x80, 0x80, 0x80, 0x80);
 
-			foreground_four_lower = _mm_mullo_epi16(foreground_four_lower, alpha_lower);
-			foreground_four_upper = _mm_mullo_epi16(foreground_four_upper, alpha_upper);
+			lower_background = _mm_shuffle_epi8(lower_background, mask_for_result);
+			upper_background = _mm_shuffle_epi8(upper_background, mask_for_result);
 
-			// [A3 a3 R3 r3 | G3 g3 B3 b3 | ... | A0 a0 R0 r0 | G0 g0 B0 b0]
-			foreground_four_lower = _mm_add_epi16(background_four_lower, foreground_four_lower);
+			__m128i result = _mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(upper_background), _mm_castsi128_ps(lower_background)));
+			_mm_storeu_si128((__m128i*)(background_picture->pixels + x_background * background_picture->wigth_screen + y_background), result);
 
-			// [A7 a7 R7 r7 | G7 g7 B7 b7 | ... | A4 a4 R4 r4 | G4 g4 B4 b4]
-			foreground_four_upper = _mm_add_epi16(background_four_upper, foreground_four_upper);
+			/*__m256i fg = _mm256_cvtepu8_epi16(foreground_pixels);
+            __m256i bg = _mm256_cvtepu8_epi16(background_pixels);
 
-			foreground_four_lower = _mm_srli_epi16(foreground_four_lower, 8);
-			foreground_four_upper = _mm_srli_epi16(foreground_four_upper, 8);			
+            __m256i lower_alpha_mask = _mm256_set_epi8(0x80, 0x80, 0x80, 0x80,
+												 	   0x80, 0x80, 0x80, 0x80,
+													   0x80, 0x80, 0x80, 0x80,
+													   0x80, 0x80, 0x80, 0x80,
+												       12, 12, 12, 12,
+												        8,  8,  8,  8,
+												        4,  4,  4,  4,
+												        0,  0,  0,  0);
 
+            __m256i upper_alpha_mask = _mm256_set_epi8(28, 28, 28, 28,
+            										   24, 24, 24, 24,
+            										   20, 20, 20, 20,
+            										   16, 16, 16, 16,
+            										   0x80, 0x80, 0x80, 0x80,
+            										   0x80, 0x80, 0x80, 0x80,
+            										   0x80, 0x80, 0x80, 0x80,
+            										   0x80, 0x80, 0x80, 0x80);
 
-			__m128i mask_for_lowers = _mm_set_epi8(-1, -1, -1, -1,
-												  -1, -1, -1, -1,
-												  14, 12, 10,  8,
-												   6,  4,  2,  0);
+            __m256i lower_alpha_foreground = _mm256_shuffle_epi8(fg, lower_alpha_mask);
+            __m256i upper_alpha_foreground = _mm256_shuffle_epi8(fg, upper_alpha_mask);
 
-			__m128i mask_for_uppers = _mm_set_epi8(14, 12, 10, 8,
-												   6,  4,  2,  0,
-												  -1, -1, -1, -1,
-												  -1, -1, -1, -1);			
-			// [-- -- -- -- | -- -- -- -- | -- -- -- -- | -- -- -- -- | A3 R3 G3 B3 | .... | A0 R0 G0 B0 ]
-			foreground_pixels = _mm_shuffle_epi8(foreground_four_lower, mask_for_uppers);
-			
+            __m256i inverse_lower_alpha_foreground = _mm256_sub_epi8(c256, lower_alpha_foreground);
+            __m256i inverse_upper_alpha_foreground = _mm256_sub_epi8(c256, upper_alpha_foreground);
 
-			foreground_four_upper = _mm_shuffle_epi8(foreground_four_upper, mask_for_uppers);
+            __m256i lower_foreground_pixels = _mm256_cvtepu8_epi16(_mm256_extracti128_si256(fg, 0));
+            __m256i upper_foreground_pixels = _mm256_cvtepu8_epi16(_mm256_extracti128_si256(fg, 1));
 
+            __m256i lower_background_pixels = _mm256_cvtepu8_epi16(_mm256_extracti128_si256(bg, 0));
+            __m256i upper_background_pixels = _mm256_cvtepu8_epi16(_mm256_extracti128_si256(bg, 1));     
 
-			//result_pixel = _mm_shuffle_epi8(lower_pixels, mask_for_uppers);
-			foreground_pixels = _mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(foreground_four_upper), _mm_castsi128_ps(foreground_pixels)));
+            /*lower_foreground_pixels = _mm256_mullo_epi16(lower_foreground_pixels, lower_alpha_foreground);
+            upper_foreground_pixels = _mm256_mullo_epi16(upper_foreground_pixels, upper_alpha_foreground);
 
-			// [A7 R7 G7 B7 | A6 R6 G6 B6 | -- -- -- -- | -- -- -- -- | A3 R3 G3 B3 | .... | A0 R0 G0 B0 ]
-			//result_pixel = _mm_shuffle_epi8(upper_pixels, mask_for_uppers);
-			_mm_storeu_si128((__m128i*)(background_picture->pixels + x_background * background_picture->wigth_screen + y_background), foreground_pixels);
+            lower_background_pixels = _mm256_mullo_epi16(lower_background_pixels, inverse_lower_alpha_foreground);
+            upper_background_pixels = _mm256_mullo_epi16(upper_background_pixels, inverse_upper_alpha_foreground);
+
+            lower_foreground_pixels = _mm256_add_epi16(lower_foreground_pixels, lower_background_pixels);
+            upper_foreground_pixels = _mm256_add_epi16(upper_foreground_pixels, upper_background_pixels);*/
+
+            /*__m256i lower_mask = _mm256_set_epi8( 0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          15, 13, 11,  9,
+            							           7,  5,  3,  1,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80);
+
+            __m256i upper_mask = _mm256_set_epi8( 31, 29, 27, 25,
+            							          23, 21, 19, 17,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80,
+            							          0x80, 0x80, 0x80, 0x80);            
+
+            __m256i lower_lower_result = _mm256_shuffle_epi8(lower_foreground_pixels, lower_mask);
+            __m256i lower_upper_result = _mm256_shuffle_epi8(lower_foreground_pixels, upper_mask);
+
+			__m256i upper_lower_result = _mm256_shuffle_epi8(upper_foreground_pixels, lower_mask);
+			__m256i upper_upper_result = _mm256_shuffle_epi8(upper_foreground_pixels, upper_mask);
+
+			__m128 lower_result = _mm_movehl_ps((__m128)(_mm256_extracti128_si256(lower_upper_result, 1)), (__m128)(_mm256_extracti128_si256(lower_lower_result, 0)));
+			__m128 upper_result = _mm_movehl_ps((__m128)(_mm256_extracti128_si256(upper_upper_result, 1)), (__m128)(_mm256_extracti128_si256(upper_lower_result, 0)));*/
+
+			// _mm_storeu_si128((__m128i*)(background_picture->pixels + x_background * background_picture->wigth_screen + y_background),     (__m128i)lower_result);
+
+			//_mm_storeu_si128((__m128i*)(background_picture->pixels + x_background * background_picture->wigth_screen + y_background),     (__m128i)background_pixels);      
 
 			y_background += 4;
 		}
@@ -238,15 +290,6 @@ Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* 
 	}
 
 	return ALL_IS_OKEY;
-}
-
-void set_4_numbers_from_array_to_m128(__m128* big_number, const int first_number, const int second_number, const int third_number, const int fourth_number) {
-	if(!big_number)
-		return;
-
-	*big_number = _mm_castsi128_ps(_mm_set_epi32(first_number, second_number, third_number, fourth_number)); // [fourth | third | second | first]
-
-	return;
 }
 
 bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* foreground_picture) {
@@ -309,39 +352,3 @@ void display_picture(sf::Sprite sprite, const int wigth_screen, const int height
         window.display();
 	}
 }
-
-
-/*
-		/*(-1, 30, -1, 30,
-														 -1, 30, -1, 30,
-														 -1, 22, -1, 22,
-														 -1, 22, -1, 22,
-														 -1, 14, -1, 14,
-														 -1, 14, -1, 14,
-														 -1,  6, -1,  6,
-														 -1,  6, -1,  6);*/
-
-
-
-/*
-			__m128 mask_for_lowers = _mm_set_epi8(-1, -1, -1, -1,
-												  -1, -1, -1, -1,
-												  -1, -1, -1, -1,
-												  -1, -1, -1, -1,
-												  31, 29, 27, 25,
-												  23, 21, 19, 17,
-												  15, 13, 11,  9,
-												   7,  5,  3,  1);
-			// [-- -- -- -- | -- -- -- -- | -- -- -- -- | -- -- -- -- | A3 R3 G3 B3 | .... | A0 R0 G0 B0 ]
-			__m128 result_pixel = _mm_shuffle_epi8(lower_pixels, mask_for_lowers);
-
-
-			__m128 mask_for_uppers = _mm_set_epi8(31, 29, 27, 25,
-												  23, 21, 19, 17,
-												  15, 13, 11,  9,
-												   7,  5,  3,  1,
-												  -1, -1, -1, -1,
-												  -1, -1, -1, -1,
-												  -1, -1, -1, -1,
-												  -1, -1, -1, -1);	
-*/
