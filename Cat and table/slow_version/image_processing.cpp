@@ -3,27 +3,27 @@
 #include "image_processing.h"
 #include <SFML/Graphics.hpp>
 
-
-#define CHECK_STATUS									\
-	if(status != ALL_IS_OKEY) {							\
-		printf("Bad; status = %d\n", status);			\
+#define CHECK_STATUS													\
+	if(status != ALL_IS_OKEY) {											\
+		printf("Bad; status = %s\n", TEXT_STATUSES[status]);			\
 	}
 
-#define CHECK_STATUS_AND_RETURN_IF_NOT_OKEY				\
-	if(status != ALL_IS_OKEY) {							\
-		printf("Bad; status = %d\n", status);			\
-		return status;									\
+#define CHECK_STATUS_AND_RETURN_IF_NOT_OKEY								\
+	if(status != ALL_IS_OKEY) {											\
+		printf("Bad; status = %s\n", TEXT_STATUSES[status]);			\
+		return status;													\
 	}	
 
 Screen_type* screen_new(const char* picture_name)	 {
 	Screen_type* new_screen = (Screen_type*)calloc(1, sizeof(Screen_type));
 
-	if(!new_screen)
+	if(!new_screen || !picture_name)
 		return NULL;
 
 	Statuses_type status = screen_construct(new_screen, picture_name);
 
 	if(status != ALL_IS_OKEY) {
+		printf("Bad; status = %s\n", TEXT_STATUSES[status]);
 		free(new_screen);
 		return NULL;
 	}
@@ -32,7 +32,7 @@ Screen_type* screen_new(const char* picture_name)	 {
 }
 
 Statuses_type screen_construct(Screen_type* screen, const char* picture_name) {
-	if(!screen)
+	if(!screen || !picture_name)
 		return BAD_POINTERS;
 
 	sf::Image image = {};
@@ -48,24 +48,24 @@ Statuses_type screen_construct(Screen_type* screen, const char* picture_name) {
 	if(!screen->pixels)
 		return BAD_POINTERS;
 
-	for(int i = 0; i < screen->wigth_screen; ++i) {
-		screen->pixels[i] = (Colour*)calloc(screen->wigth_screen, sizeof(Colour));
-		if(!screen->pixels[i])
+	for(int line = 0; line < screen->wigth_screen; ++line) {
+		screen->pixels[line] = (Colour*)calloc(screen->wigth_screen, sizeof(Colour));
+		if(!screen->pixels[line])
 			return BAD_POINTERS;
 	}
 
 	Statuses_type status = ALL_IS_OKEY;
 
-	for(int i = 0; i < screen->height_screen; ++i) {
-		for(int j = 0; j < screen->wigth_screen; ++j) {
-			sf::Color color_now_pixel = image.getPixel(j, i);
-			set_pixel_color(screen->pixels, i, j, color_now_pixel);
+	for(int x_coordinate = 0; x_coordinate < screen->height_screen; ++x_coordinate) {
+		for(int y_coordinate = 0; y_coordinate < screen->wigth_screen; ++y_coordinate) {
+			sf::Color color_now_pixel = image.getPixel(y_coordinate, x_coordinate);
+
+			set_pixel_color(screen->pixels, x_coordinate, y_coordinate, color_now_pixel);
 			CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 		}
 	}
 
-	return ALL_IS_OKEY;
-
+	return status;
 }
 
 Statuses_type set_pixel_color(Colour** pixels, const int line, const int column, sf::Color color_now_pixel) {
@@ -84,15 +84,13 @@ Statuses_type screen_delete(Screen_type* screen) {
 	if(!screen || !screen->pixels)
 		return ALL_IS_OKEY;
 
-	for(int i = 0; i < screen->height_screen; ++i)
-		free(screen->pixels[i]);
+	for(int line = 0; line < screen->height_screen; ++line)
+		free(screen->pixels[line]);
 
 	free(screen->pixels);
 
 	return ALL_IS_OKEY;
-
 }
-
 
 Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture) {
 	if(!background_picture || !foreground_picture) 
@@ -101,7 +99,7 @@ Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_
 	if(!is_correct_pictures_size(background_picture, foreground_picture))
 		return BAD_PICTURES_SIZE;
 
-	sf::Sprite sprite = {};
+	sf::Sprite  sprite  = {};
 	sf::Texture texture = {};
 
 	if(!texture.create(background_picture->wigth_screen, background_picture->height_screen)) 
@@ -109,15 +107,15 @@ Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_
 
 	sprite.setTexture(texture);
 
-	printf("begin overlaying pictures...\n");
+	Statuses_type status = ALL_IS_OKEY;
 
 	measurements(background_picture, foreground_picture);
+	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 
-	printf("begin show_result_images...\n");
+	//show_result_image(background_picture, &sprite, &texture);
+	//CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 
-	show_result_image(background_picture, &sprite, &texture);
-
-	return ALL_IS_OKEY;
+	return status;
 }
 
 Statuses_type measurements(Screen_type* background_picture, Screen_type* foreground_picture) {
@@ -127,16 +125,16 @@ Statuses_type measurements(Screen_type* background_picture, Screen_type* foregro
 	clock_t start_time = clock();
 
 	Statuses_type status = ALL_IS_OKEY;
-	for(int measurement = 0; measurement < count_repeats_in_measurements; ++measurement) {
+	for(int measurement = 0; measurement < COUNT_REPEATS_IN_MEASUREMENTS; ++measurement) {
 		status = overlaying_pictures(background_picture, foreground_picture, X_OFFSET, Y_OFFSET);
 		CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 	}
 
 	clock_t end_time = clock();
 
-	printf("Time passed: %f ms\n", (end_time - start_time) / (float)count_repeats_in_measurements);
+	printf("Time passed: %f ms\n", (end_time - start_time) / (float)COUNT_REPEATS_IN_MEASUREMENTS);
 
-	return ALL_IS_OKEY;
+	return status;
 }
 
 Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* foreground_picture, const int x_offset, const int y_offset) {
@@ -146,13 +144,12 @@ Statuses_type overlaying_pictures(Screen_type* background_picture, Screen_type* 
 	if(!is_correct_pictures_size(background_picture, foreground_picture))
 		return BAD_PICTURES_SIZE;
 	
+	for(int x_coordinate = 0; x_coordinate < foreground_picture->height_screen; ++x_coordinate) {
+		for(int y_coordinate = 0; y_coordinate < foreground_picture->wigth_screen; ++y_coordinate) {
+			Colour background_pixel = background_picture->pixels[x_coordinate + x_offset][y_coordinate + y_offset];
+			Colour foreground_pixel = foreground_picture->pixels[x_coordinate][y_coordinate];
 
-	for(int x = 0; x < foreground_picture->height_screen; ++x) {
-		for(int y = 0; y < foreground_picture->wigth_screen; ++y) {
-			Colour background_pixel = background_picture->pixels[x + x_offset][y + y_offset];
-			Colour foreground_pixel = foreground_picture->pixels[x][y];
-
-			background_picture->pixels[x + x_offset][y + y_offset] = pixel_transform_on_overlay(background_pixel, foreground_pixel);
+			background_picture->pixels[x_coordinate + x_offset][y_coordinate + y_offset] = pixel_transform_on_overlay(background_pixel, foreground_pixel);
 		}
 	}
 
@@ -164,8 +161,12 @@ bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* fore
 		return false;
 
 	if(foreground_picture->wigth_screen  > background_picture->wigth_screen ||
-	   background_picture->height_screen > background_picture->height_screen)
+	   foreground_picture->height_screen > background_picture->height_screen)
 		return false;
+
+	if(foreground_picture->wigth_screen < 0 || foreground_picture->height_screen < 0 ||
+	   background_picture->wigth_screen < 0 || background_picture->height_screen < 0)
+		return false;	
 
 	return true;
 }
@@ -184,27 +185,33 @@ Colour pixel_transform_on_overlay(const Colour background_pixel, const Colour fo
 	return result_pixel;
 }
 
-void show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::Texture* texture) {
+Statuses_type show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::Texture* texture) {
+	if(!sprite || !texture)
+		return BAD_POINTERS;
+
 	sf::Image result_image = {};
 	result_image.create(background_picture->wigth_screen, background_picture->height_screen);
 
-	for(int x = 0; x < background_picture->height_screen; ++x) {
-		for(int y = 0; y < background_picture->wigth_screen; ++y) {
-			sf::Color now_color(background_picture->pixels[x][y].red,
-								background_picture->pixels[x][y].green,
-								background_picture->pixels[x][y].blue,
-								background_picture->pixels[x][y].alpha);
+	for(int x_coordinate = 0; x_coordinate < background_picture->height_screen; ++x_coordinate) {
+		for(int y_coordinate = 0; y_coordinate < background_picture->wigth_screen; ++y_coordinate) {
 
-			result_image.setPixel(y, x, now_color);
+			sf::Color now_color(background_picture->pixels[x_coordinate][y_coordinate].red,
+								background_picture->pixels[x_coordinate][y_coordinate].green,
+								background_picture->pixels[x_coordinate][y_coordinate].blue,
+								background_picture->pixels[x_coordinate][y_coordinate].alpha);
+
+			result_image.setPixel(y_coordinate, x_coordinate, now_color);
 		}
 	}
 
 	texture->update(result_image);
 
-	display_picture(*sprite, background_picture->wigth_screen, background_picture->height_screen);
+	display_picture(sprite, background_picture->wigth_screen, background_picture->height_screen);
+
+	return ALL_IS_OKEY;
 }
 
-void display_picture(sf::Sprite sprite, const int wigth_screen, const int height_screen) {
+void display_picture(sf::Sprite* sprite, const int wigth_screen, const int height_screen) {
 	sf::RenderWindow window(sf::VideoMode(wigth_screen, height_screen), "Cat on table!");
 
 	while(window.isOpen()) {
@@ -215,7 +222,9 @@ void display_picture(sf::Sprite sprite, const int wigth_screen, const int height
         }
 
         window.clear();
-        window.draw(sprite);
+        window.draw(*sprite);
         window.display();
 	}
+
+	return;
 }
