@@ -12,7 +12,7 @@ struct Mandelbrot_params {
 	int width_screen;
 	int height_screen;
 	int max_steps;
-	int sqr_max_radius;
+	float sqr_max_radius;
 	float scale;
 	float x_center, y_center;
 	float small_delta, big_delta;
@@ -36,7 +36,6 @@ Statuses_type start_work_with_window(Mandelbrot_params* parameters);
 
 Statuses_type draw_mandelbrot(Mandelbrot_params* parameters);
 
-//Statuses_type draw_points(Mandelbrot_params* parameters);
 Statuses_type draw_points(Mandelbrot_params* parameters);
 
 bool is_escape_pressed();

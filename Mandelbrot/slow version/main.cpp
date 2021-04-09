@@ -12,7 +12,7 @@ int main() {
 		400,			// wigth_screen
 		400,			// height_screen
 		10000,			// max_steps
-		100,			// sqr_max_radius
+		100.0,			// sqr_max_radius
 		5.5,			// scale
 		0.f,			// x_coord_center
 		0.f,			// y_coord_center

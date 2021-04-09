@@ -1,6 +1,7 @@
 #include "TXlib.h"
 #include "mandelbrot.h"
 #include <math.h>
+#include <ctime>
 
 Statuses_type start_work_with_window(Mandelbrot_params* parameters) {
 	txCreateWindow(parameters->width_screen, parameters->height_screen);
@@ -15,7 +16,7 @@ Statuses_type draw_mandelbrot(Mandelbrot_params* parameters) {
 			if(is_escape_pressed()) {
 				is_window_open = false;
 				break;
-			} //else if()
+			} 
 
 			if(is_zoom_in_pressed()) {
 				parameters->scale    += parameters->dx * (is_shift_pressed() ? parameters->big_delta : parameters->small_delta);
@@ -31,11 +32,16 @@ Statuses_type draw_mandelbrot(Mandelbrot_params* parameters) {
 		        parameters->y_center -= parameters->dy * (is_shift_pressed() ? parameters->big_delta : parameters->small_delta);
 		    }			
 
+		    //clock_t start_time = clock();
 			Statuses_type now_status = draw_points(parameters);
 			if(now_status == ESCAPE_PRESSED) {
 				is_window_open = false;
 				break;			
 			}
+
+			//clock_t end_time = clock();
+
+			//printf("Time passed: %ld ms\n", (end_time - start_time));			
 
 			printf("\t\r%.0lf", txGetFPS());
 	        txSleep();
@@ -54,8 +60,8 @@ Statuses_type draw_points(Mandelbrot_params* parameters) {
 		if(is_escape_pressed())
 			return ESCAPE_PRESSED;
 
-		float start_x = ( (			- parameters->width_screen  / 2.0) * parameters->dx + ROI_X + xC ) * parameters->scale, 
-			  start_y = ( ((float)y - parameters->height_screen / 2.0) * parameters->dy + ROI_Y + yC ) * parameters->scale;
+		float start_x = ( float(			- parameters->width_screen  / 2.0) * parameters->dx + ROI_X + xC ) * parameters->scale, 
+			  start_y = ( float((float)y    - parameters->height_screen / 2.0) * parameters->dy + ROI_Y + yC ) * parameters->scale;
 
 		for(int x = 0; x < parameters->width_screen; ++x, start_x += parameters->dx) {
 			if(is_escape_pressed())

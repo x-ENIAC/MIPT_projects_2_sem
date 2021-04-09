@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include "mandelbrot.h"
 
-#define CHECK_STATUS									\
-	if(status != ALL_IS_OKEY) {							\
-		printf("Bad; status = %d\n", status);			\
+#define CHECK_STATUS																						\
+	if(status != ALL_IS_OKEY) {																				\
+		printf("Bad; code status = %d\n, message: %s\n", status, TEXT_STATUSES_TYPE[status]);				\
 	}
+
 
 int main() {
  	Mandelbrot_params parameters = {
@@ -18,8 +19,8 @@ int main() {
 		0.f,			// y_coord_center
 		5.f,			// small_delta
 		50.f,			// big_delta
-		1 / 800.f,
-		1 / 800.f
+		1 / 800.f,		// dx
+		1 / 800.f		// dy
 	};
 
 	Statuses_type status = ALL_IS_OKEY;

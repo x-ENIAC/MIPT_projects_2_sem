@@ -10,6 +10,12 @@ enum Statuses_type {
 	BAD_POINTERS   = 2,
 };
 
+const char TEXT_STATUSES_TYPE[][50] = {
+	"All right",
+	"Escape pressed",
+	"Bad pointer exists"
+};
+
 struct Mandelbrot_params {
 	int width_screen;
 	int height_screen;
