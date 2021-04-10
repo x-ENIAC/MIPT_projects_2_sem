@@ -4,7 +4,7 @@
 #define INFORMATION_ABOUT_CALL (call_of_dump){__FILE__, __LINE__, __FUNCTION__}
 
 //const Elem_type POISON              =       NULL;
-const int       MAX_SIZE_WORD       =        100;
+const int       MAX_SIZE_WORD       =        300;
 const int       POISON              =      -3802;
 const int       BEGIN_INIT_SIZE     =          8;
 const int       SIZE_OF_NAME_FILES  =         50;
@@ -124,12 +124,14 @@ void                    list_initializate                                      (
 void                    list_destruct                                          (List* my_list);
 
 //LIST_STATUSES           list_insert_before                                     (List* my_list, const size_t physical_position, const Elem_type value);
-LIST_STATUSES           list_insert_before                                     (List* my_list, const size_t physical_position, const char* value, const int length);
+LIST_STATUSES           list_insert_before                                     (List* my_list, const size_t physical_position, char* value, const int length);
 
 //LIST_STATUSES           list_insert_after                                      (List* my_list, const size_t physical_position, const Elem_type value);
-LIST_STATUSES           list_insert_after                                      (List* my_list, const size_t physical_position, const char* value, const int length);
+LIST_STATUSES           list_insert_after                                      (List* my_list, const size_t physical_position,  char* value, const int length);
 
 LIST_STATUSES           list_resize                                            (List* my_list, const double quantity);
+
+bool                    list_find_element                                      (List* my_list, const char* value, const int length);
 
 //LIST_STATUSES           list_insert_first_element                              (List* my_list, const size_t temporary_free, const Elem_type value);
 LIST_STATUSES           list_insert_first_element                              (List* my_list, const size_t temporary_free,  const char* value, const int length);

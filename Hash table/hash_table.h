@@ -57,8 +57,8 @@ const char TEXT_HASH_TABLE_STATUSES[][100] = {
     HASH_TABLE_BAD_POINTER		= 15,*/
 };
 
-const int FIRST_BIG_NUMBER  = 29;
-const int SIZE_HASH_TABLE = 100;
+const int FIRST_BIG_NUMBER  = 18522; // 10267;
+const int SIZE_HASH_TABLE = 100000; // 11719;
 const long long BAD_HASH = -3802;
 
 struct Hash_table_type {
@@ -70,4 +70,6 @@ HASH_TABLE_STATUSES hash_table_construct(Hash_table_type* hash_table);
 
 HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_table);
 
-long long get_hash_word(const char* word, const int length_word);
+unsigned long long get_hash_word(const char* word, const int length_word);
+
+bool hash_table_contain_element(Hash_table_type* hash_table, const char* value, const int length);
