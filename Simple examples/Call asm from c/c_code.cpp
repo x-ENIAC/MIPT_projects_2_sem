@@ -8,6 +8,7 @@ extern "C" int add_numbers(int, int);
 
 int main() {
     int number1 = 0, number2 = 0;
+    printf("Enter 2 numbers:\n");
     scanf("%d%d", &number1, &number2);
 
     int sum = add_numbers(number1, number2);
