@@ -1,5 +1,6 @@
 #include "list.h"
 #include "work_with_file.h"
+#include "string.h"
 
 enum HASH_TABLE_STATUSES {
 	SMTH_LIST_OK                = 0,
@@ -19,6 +20,7 @@ enum HASH_TABLE_STATUSES {
 
     HASH_TABLE_OKEY				= 14,
     HASH_TABLE_BAD_POINTER		= 15,
+    HASH_TABLE_BAD_SIZE         = 16,
 };
 
 const char TEXT_HASH_TABLE_STATUSES[][100] = {
@@ -57,9 +59,11 @@ const char TEXT_HASH_TABLE_STATUSES[][100] = {
     HASH_TABLE_BAD_POINTER		= 15,*/
 };
 
-const int FIRST_BIG_NUMBER  = 18522; // 10267;
-const int SIZE_HASH_TABLE = 100000; // 11719;
-const long long BAD_HASH = -3802;
+const long long FIRST_BIG_NUMBER  = 18522; // 10267;
+const long long SIZE_HASH_TABLE = 100000; // 11719;
+const long long DELTA_FOR_DELTA = 1000;
+const unsigned long long BAD_HASH = 0;
+const unsigned int COUNT_OF_TESTS = 10000;
 
 struct Hash_table_type {
 	int size_table;
@@ -70,6 +74,14 @@ HASH_TABLE_STATUSES hash_table_construct(Hash_table_type* hash_table);
 
 HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_table);
 
-unsigned long long get_hash_word(const char* word, const int length_word);
+unsigned long long get_hash_word(const char* word, const long long length_word);
 
-bool hash_table_contain_element(Hash_table_type* hash_table, const char* value, const int length);
+bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* value, const int length, bool is_print_values = false);
+
+HASH_TABLE_STATUSES hash_table_insert_element_by_key(Hash_table_type* hash_table, char* key, const int length_key, char* value, const int length_value);
+
+HASH_TABLE_STATUSES hash_table_destruct(Hash_table_type* hash_table);
+
+HASH_TABLE_STATUSES testing_hash_table(Hash_table_type* hash_table);
+
+inline char get_random_symbol();

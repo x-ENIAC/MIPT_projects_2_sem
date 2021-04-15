@@ -2,8 +2,16 @@
 #include <stdlib.h>
 #include "hash_table.h"
 #include <string.h>
+#include <time.h>
 
 int main() {
+
+	srand(time(NULL));
+
+	clock_t begin_time = clock();
+
+	srand( time( 0 ) );	
+
  	File file_with_dict = {};
  	file_with_dict.name_file = "dict.txt";
 
@@ -19,27 +27,13 @@ int main() {
 	printf("begin parse buffer\n");
  	hash_table_status = parsing_buffer(&file_with_dict, &hash_table);
 
-	//print_list(&hash_table.chains[6]);
-	/*for(int number_list = 0; number_list < SIZE_HASH_TABLE; ++number_list) {
-		printf("%d list:\n", number_list);
-		print_list(&hash_table.chains[number_list]);	// lucky: udacha
-		printf("\n\n\n");
-	}*/
+ 	testing_hash_table(&hash_table);
 
- 	//char* h = "allocate";
- 	//printf("%s - %lld\n", "allocate", get_hash_word(h, 8));
- 	printf("%s - %lld\n", "dish", get_hash_word("dish", 4));
- 	printf("%s - %lld\n", "heir", get_hash_word("heir", 4));
- 	printf("%s - %lld\n", "mind", get_hash_word("mind", 4));
+ 	hash_table_destruct(&hash_table);
 
- 	char* checked_word = "mind"; //(char*)calloc(100, sizeof(char));
- 	//checked_word[0] = 'y'; checked_word[1] = 'e'; checked_word[2] = 'a'; checked_word[3] = 'r';
- 	bool result = hash_table_contain_element(&hash_table, checked_word, 4);
+	clock_t end_time = clock();
 
- 	if(result)
- 		printf("YES\n");
- 	else
- 		printf("NO\n");
+	printf("\n%lu ms\n", (end_time - begin_time) / 1000);
 
 	return 0;
 }
