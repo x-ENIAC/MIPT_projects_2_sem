@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 struct File {
-    char* name_file;
+    const char* name_file;
     char* buffer;
     int size_buffer;
     //struct stat information;

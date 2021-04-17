@@ -3,6 +3,13 @@
 #include "hash_table.h"
 #include <string.h>
 #include <time.h>
+#include "warnings.h"
+
+#define VERIFY_FILE_STATUS                                                  \
+    if(file_status != FILE_OK) {                                            \
+        warning(TEXT_FILE_STATUS[file_status], INFORMATION_ABOUT_CALL);     \
+        return FILE_BAD_PTR;                                                \
+    }
 
 int main() {
 
@@ -16,6 +23,7 @@ int main() {
  	file_with_dict.name_file = "dict.txt";
 
  	FILE_STATUS file_status = read_buffer(&file_with_dict);
+ 	VERIFY_FILE_STATUS
 
 	Hash_table_type hash_table = {};
 	HASH_TABLE_STATUSES hash_table_status = hash_table_construct(&hash_table);
@@ -29,11 +37,15 @@ int main() {
 
  	testing_hash_table(&hash_table);
 
- 	hash_table_destruct(&hash_table);
-
 	clock_t end_time = clock();
 
 	printf("\n%lu ms\n", (end_time - begin_time) / 1000);
+
+	//print_something_chain(&hash_table, 48850);
+	long long hash = get_hash_word("cat", strlen("cat"));
+	print_list(&hash_table.chains[hash]);
+
+	 hash_table_destruct(&hash_table);
 
 	return 0;
 }

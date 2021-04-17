@@ -68,7 +68,7 @@ FILE_STATUS resize_buffer(struct File* file) {
 
 FILE_STATUS file_destruct(struct File* file) {
     if(file) {
-        free(file->name_file);
+        //free(file->name_file);
         free(file->buffer);
     }
 

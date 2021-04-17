@@ -11,6 +11,8 @@ struct call_of_dump {
     const char* name_function;
 };
 
+const struct call_of_dump base_arguments_of_call = {__FILE__, -1, " "};
+
 void warning(const char* information, struct call_of_dump arguments_of_call);
 
 #endif // WARNINGS_H

@@ -11,7 +11,7 @@
 
 #define REPORT_ABOUT_ERROR(code_of_error)                                                            \
     my_list->list_status = code_of_error;                                                            \
-    /*warning(my_list, INFORMATION_ABOUT_CALL); */                                                       \
+    /*list_warning(my_list, INFORMATION_ABOUT_CALL); */                                                       \
     list_dump(my_list, INFORMATION_ABOUT_CALL);
 
 #define VERIFY_LIST_STATUS                                                                           \
@@ -167,27 +167,28 @@ void print_list(List* my_list) {
             //printf("%s", my_list->data[i].value);
         }
         printf("\n\tlength: ");
-        for(size_t i=0; i<my_list->capacity; ++i) {
+        for(size_t i = 0; i < my_list->capacity; ++i) {
             printf("%4d ", my_list->data[i].length);
         }    
         printf("\n\tnext: ");
-        for(size_t i=0; i<my_list->capacity; ++i) {
+        for(size_t i = 0; i < my_list->capacity; ++i) {
             printf("%4lu ", my_list->data[i].next);
         }
         printf("\n\tprev: ");
-        for(size_t i=0; i<my_list->capacity; ++i) {
+        for(size_t i = 0; i < my_list->capacity; ++i) {
             printf("%4lu ", my_list->data[i].prev);
         }
         printf("\n\tis_used: ");
-        for(size_t i=0; i<my_list->capacity; ++i) {
+        for(size_t i = 0; i < my_list->capacity; ++i) {
             printf("%4d ", my_list->data[i].is_used);
         }
         printf("\n\n");
     #else
-        for(int i = 0; i <my_list->capacity; ++i) {
+        for(int i = 0; i < my_list->capacity; ++i) {
             printf("\n|");
-            for(int j = 0; j < my_list->data[i].length_value; ++j)
+            for(int j = 0; j < my_list->data[i].length_value; ++j) {
                 printf("%c", my_list->data[i].value[j]);
+            }
         }
 
     #endif
@@ -261,16 +262,13 @@ LIST_STATUSES list_construct(List* my_list, const size_t capacity) {
 }
 
 static void list_initializate(List* my_list, const size_t begin_position) {
-    char* ptr = (char*)calloc(7, sizeof(char));
-    strcpy(ptr, "POISON");
 
-    //printf("MAX_SIZE_WORD: %d\n", MAX_SIZE_WORD);
     for(size_t now_position = begin_position; now_position <= my_list->capacity; ++now_position) {
-        my_list->data[now_position].value   = (char*)calloc(MAX_SIZE_WORD, sizeof(char));
-        my_list->data[now_position].key     = (char*)calloc(MAX_SIZE_WORD, sizeof(char));
-        strcpy(my_list->data[now_position].value, ptr);
+        //my_list->data[now_position].value   = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
+        //my_list->data[now_position].key     = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
+        strcpy(my_list->data[now_position].value, POISON);
+        my_list->data[now_position].length_value  = LENGTH_POISON;
 
-        my_list->data[now_position].length_value  = 7;
         my_list->data[now_position].next    = now_position + 1;
         my_list->data[now_position].prev    = now_position - 1;
         my_list->data[now_position].is_used = false;
@@ -278,23 +276,24 @@ static void list_initializate(List* my_list, const size_t begin_position) {
 
     if(begin_position == 0) {
         my_list->data[0].prev = 0;
-        strcpy(my_list->data[0].value, "FICTIVE");
-        my_list->data[0].length_value  = strlen("FICTIVE");        
+        strcpy(my_list->data[0].value, FICTIVE);
+        my_list->data[0].length_value  = LENGTH_FICTIVE;
     }
 }
 
 void list_destruct(List* my_list) {
     free(my_list->data);
 
-    my_list->capacity  = POISON;
-    my_list->size_list = POISON;
-    my_list->head      = POISON;
-    my_list->tail      = POISON;
+    my_list->capacity  = INT_POISON;
+    my_list->size_list = INT_POISON;
+    my_list->head      = INT_POISON;
+    my_list->tail      = INT_POISON;
 
     free(my_list);
 }
 
-LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, char* key, const int length_key, char* value, const int length_value) {
+LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, const char* key,   const int length_key, 
+                                                                                const char* value, const int length_value) {
     IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
 
     if(length_value <= 0 || length_key <= 0)
@@ -319,12 +318,8 @@ LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, 
     my_list->data[temporary_free].length_value = (length_value + 1 > MAX_SIZE_WORD ? MAX_SIZE_WORD - 1 : length_value);    
     memcpy(my_list->data[temporary_free].value, value, my_list->data[temporary_free].length_value);
 
-    my_list->data[temporary_free].length_key = (length_key + 1 > MAX_SIZE_WORD ? MAX_SIZE_WORD - 1 : length_key);       
+    my_list->data[temporary_free].length_key = (length_key + 1 > MAX_SIZE_KEY ? MAX_SIZE_KEY - 1 : length_key);       
     memcpy(my_list->data[temporary_free].key, key, my_list->data[temporary_free].length_key);
-
-    //for(int j = 0; j < my_list->data[temporary_free].length_value; ++j)
-    //    printf("%c", my_list->data[temporary_free].value[j]);
-    //printf("\n");
 
     if(my_list->data[physical_position].prev != 0)
         my_list->data[my_list->data[physical_position].prev].next = temporary_free;
@@ -350,7 +345,6 @@ LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, 
 
     my_list->data[temporary_free].is_used = true;
     my_list->nearest_free = get_min_free_position(my_list);
-
     ++(my_list->size_list);
 
     IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
@@ -360,7 +354,8 @@ LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, 
     return LIST_OK;
 }
 
-LIST_STATUSES list_insert_after(List* my_list, const size_t physical_position, char* key, const int length_key, char* value, const int length_value) {
+LIST_STATUSES list_insert_after(List* my_list, const size_t physical_position, const char* key,  const int length_key, 
+                                                                               const char* value, const int length_value) {
     IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
 
     if(physical_position > my_list->size_list || physical_position < 0) {
@@ -371,7 +366,8 @@ LIST_STATUSES list_insert_after(List* my_list, const size_t physical_position, c
     return list_insert_before(my_list, my_list->data[physical_position].next, key, length_key, value, length_value);
 }
 
-static LIST_STATUSES list_insert_first_element(List* my_list, const size_t temporary_free, char* key, const int length_key, char* value, const int length_value) {
+static LIST_STATUSES list_insert_first_element(List* my_list, const size_t temporary_free, const char* key,   const int length_key, 
+                                                                                           const char* value, const int length_value) {
     my_list->head = temporary_free;
     my_list->nearest_free                = my_list->data[temporary_free].next;
 
@@ -384,12 +380,12 @@ static LIST_STATUSES list_insert_first_element(List* my_list, const size_t tempo
     my_list->data[my_list->head].is_used       = true;
     my_list->tail                              = temporary_free;
 
-    my_list->data[temporary_free].value        = value;
-    my_list->data[temporary_free].length_value = length_value;        
+    my_list->data[temporary_free].length_value   = (length_value + 1 >= MAX_SIZE_VALUE ? MAX_SIZE_VALUE - 1 : length_value);
+    memcpy(my_list->data[temporary_free].value, value, length_value);
 
-    my_list->data[temporary_free].key          = key;
-    my_list->data[temporary_free].length_key   = length_key;        
-
+    my_list->data[temporary_free].length_key   = (length_key + 1 >= MAX_SIZE_KEY ? MAX_SIZE_KEY - 1 : length_key);
+    memcpy(my_list->data[temporary_free].key, key, length_key);
+      
 
     ++(my_list->size_list);
 
@@ -564,6 +560,7 @@ static size_t get_min_free_position(List* my_list) {
 
     while(!my_list->data[my_list->data[now_position].prev].is_used && now_position > my_list->data[now_position].prev) {
         now_position = my_list->data[now_position].prev;
+        printf("\t\t%lu\n", now_position);
     }
 
     return now_position;
@@ -591,7 +588,7 @@ size_t list_slow_find_physical_position_by_logical(List* my_list, const size_t p
 
     if(!my_list->data[position].is_used) {
         my_list->list_status = LIST_NO_SUCH_ELEMENT;
-        warning(my_list, INFORMATION_ABOUT_CALL);
+        list_warning(my_list, INFORMATION_ABOUT_CALL);
         return my_list->fictive;
     }
 
@@ -603,7 +600,7 @@ size_t list_slow_find_physical_position_by_logical(List* my_list, const size_t p
     for(size_t number_of_element = 0; number_of_element < position; ++number_of_element) {
         if(my_list->data[begin_position].next >= my_list->capacity) {
             my_list->list_status = LIST_NO_SUCH_ELEMENT;
-            warning(my_list, INFORMATION_ABOUT_CALL);
+            list_warning(my_list, INFORMATION_ABOUT_CALL);
             return my_list->fictive;
         }
 
@@ -648,9 +645,9 @@ LIST_STATUSES list_very_very_slow_sort(List* my_list) {
     return LIST_OK;
 }*/
 
-void warning(const List* my_list, struct call_of_dump arguments_of_call) {
+void list_warning(const List* my_list, struct call_of_dump arguments_of_call) {
     system("echo \e[31m-----------------!WARNING!----------------\e[0m");
-    char warning_info[SIZE_OF_WARNINGS] = "";
+    char warning_info[SIZE_OF_LIST_WARNINGS] = "";
     sprintf(warning_info, "echo \"\\e[31mIN FILE %s (FUNCTION %s, LINE %d)\\e[0m\"", arguments_of_call.name_file, arguments_of_call.name_function, arguments_of_call.number_of_line);
     system(warning_info);
     sprintf(warning_info, "echo \"\\e[31mList status: %s\\e[0m\"", TEXT_LIST_STATUSES[my_list->list_status]);

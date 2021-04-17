@@ -1,25 +1,34 @@
 #include <stdio.h>
+#include "warnings.h"
 
 #define Elem_type char*
 #define INFORMATION_ABOUT_CALL (call_of_dump){__FILE__, __LINE__, __FUNCTION__}
 
-//const Elem_type POISON              =       NULL;
-const int       MAX_SIZE_WORD       =        300;
-const int       POISON              =      -3802;
-const int       BEGIN_INIT_SIZE     =          8;
-const int       SIZE_OF_NAME_FILES  =         50;
-const int       SIZE_OF_WARNINGS    =        150;
-const size_t    MAX_VALUE_SIZE_T    = (size_t)-1;
+const int       MAX_SIZE_WORD            =        300;
+const int       MAX_SIZE_KEY             =         64;
+const int       MAX_SIZE_VALUE           =        300;
+const int       INT_POISON               =      -3802;
+const int       BEGIN_INIT_SIZE          =          8;
+const int       SIZE_OF_NAME_FILES       =         50;
+const int       SIZE_OF_LIST_WARNINGS    =        150;
+const size_t    MAX_VALUE_SIZE_T         = (size_t)-1;
 
-const char name_input_html_file[] = "list_dump.html";
+const char      POISON[8]                = "POISON";
+const int       LENGTH_POISON            = 6;
 
-struct call_of_dump {
+
+const char      FICTIVE[8]               = "FICTIVE";
+const int       LENGTH_FICTIVE           = 7;
+
+const char name_input_html_file[]        = "list_dump.html";
+
+/*struct call_of_dump {
     const char* name_file;
     int number_of_line;
     const char* name_function;
 };
 
-const struct call_of_dump base_arguments_of_call = {__FILE__, -1, " "};
+const struct call_of_dump base_arguments_of_call = {__FILE__, -1, " "};*/
 
 typedef enum {
     LIST_OK                = 0,
@@ -59,10 +68,12 @@ struct Node {
     size_t prev;
     size_t next;
     bool is_used;
-    Elem_type value;
+    //Elem_type value;
+    char value[MAX_SIZE_VALUE];
     int length_value;
 
-    Elem_type key;
+    //Elem_type key;
+    char key[MAX_SIZE_KEY];
     int length_key;    
 };
 
@@ -126,18 +137,18 @@ static void             list_initializate                                      (
 
 void                    list_destruct                                          (List* my_list);
 
-LIST_STATUSES           list_insert_before                                     (List* my_list, const size_t physical_position, char* key, const int length_key, char* value, const int length_value);
+LIST_STATUSES           list_insert_before                                     (List* my_list, const size_t physical_position, const char* key, const int length_key, const char* value, const int length_value);
 
-LIST_STATUSES           list_insert_after                                      (List* my_list, const size_t physical_position, char* key, const int length_key, char* value, const int length);
+LIST_STATUSES           list_insert_after                                      (List* my_list, const size_t physical_position, const char* key, const int length_key, const char* value, const int length);
 
 static LIST_STATUSES    list_resize                                            (List* my_list, const double quantity);
 
 bool                    list_find_element                                      (List* my_list, const char* value, const int length);
 
-static LIST_STATUSES    list_insert_first_element                              (List* my_list, const size_t temporary_free, char* key, const int length_key, char* value, const int length);
+static LIST_STATUSES    list_insert_first_element                              (List* my_list, const size_t temporary_free, const char* key, const int length_key, const char* value, const int length);
 
 void                    put_free_position                                      (List* my_list, const size_t position);
 
 static size_t           get_min_free_position                                  (List* my_list);
 
-void                    warning                                                (List* my_list, struct call_of_dump arguments_of_call = base_arguments_of_call);
+void                    list_warning                                           (List* my_list, struct call_of_dump arguments_of_call = base_arguments_of_call);
