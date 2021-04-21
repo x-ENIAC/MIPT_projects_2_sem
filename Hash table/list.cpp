@@ -162,7 +162,7 @@ void print_list(List* my_list) {
         printf("\tvalue: ");
         for(size_t i=0; i<my_list->capacity; ++i) {
             printf(" ");
-            for(int j = 0; j < my_list->data[i].length; ++j)
+            for(size_t j = 0; j < my_list->data[i].length; ++j)
                 printf( "%c", my_list->data[i].value[j]);
             //printf("%s", my_list->data[i].value);
         }
@@ -184,9 +184,9 @@ void print_list(List* my_list) {
         }
         printf("\n\n");
     #else
-        for(int i = 0; i < my_list->capacity; ++i) {
+        for(size_t i = 0; i < my_list->capacity; ++i) {
             printf("\n|");
-            for(int j = 0; j < my_list->data[i].length_value; ++j) {
+            for(size_t j = 0; j < my_list->data[i].length_value; ++j) {
                 printf("%c", my_list->data[i].value[j]);
             }
         }
@@ -206,13 +206,13 @@ static void list_verifier(List* my_list, struct call_of_dump arguments_of_call =
     } else if((my_list->size_list) > (my_list->capacity)) {
         my_list->list_status = LIST_OVERFLOW;
         list_dump(my_list, arguments_of_call);
-    } else if(my_list->size_list < 0) {
+    } /*else if(my_list->size_list < 0) {
         my_list->list_status = LIST_BAD_SIZE;
         list_dump(my_list, arguments_of_call);
     } else if(my_list->capacity < 0) {
         my_list->list_status = LIST_BAD_CAPACITY;
         list_dump(my_list, arguments_of_call);
-    } else if(my_list->list_status != LIST_OK) {
+    }*/ else if(my_list->list_status != LIST_OK) {
         list_dump(my_list, arguments_of_call);
     }
 
@@ -227,6 +227,26 @@ static void list_verifier(List* my_list, struct call_of_dump arguments_of_call =
             my_list->list_status = LIST_BAD_DATA;
             list_dump(my_list, arguments_of_call);
            }
+    }
+}
+
+static void list_initializate(List* my_list, const size_t begin_position) {
+
+    for(size_t now_position = begin_position; now_position <= my_list->capacity; ++now_position) {
+        //my_list->data[now_position].value   = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
+        //my_list->data[now_position].key     = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
+        strcpy(my_list->data[now_position].value, POISON);
+        my_list->data[now_position].length_value  = LENGTH_POISON;
+
+        my_list->data[now_position].next    = now_position + 1;
+        my_list->data[now_position].prev    = now_position - 1;
+        my_list->data[now_position].is_used = false;
+    }
+
+    if(begin_position == 0) {
+        my_list->data[0].prev = 0;
+        strcpy(my_list->data[0].value, FICTIVE);
+        my_list->data[0].length_value  = LENGTH_FICTIVE;
     }
 }
 
@@ -261,42 +281,86 @@ LIST_STATUSES list_construct(List* my_list, const size_t capacity) {
     return LIST_OK;
 }
 
-static void list_initializate(List* my_list, const size_t begin_position) {
+static size_t get_min_free_position(List* my_list) {
+    size_t now_position = my_list->nearest_free;
 
-    for(size_t now_position = begin_position; now_position <= my_list->capacity; ++now_position) {
-        //my_list->data[now_position].value   = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
-        //my_list->data[now_position].key     = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
-        strcpy(my_list->data[now_position].value, POISON);
-        my_list->data[now_position].length_value  = LENGTH_POISON;
-
-        my_list->data[now_position].next    = now_position + 1;
-        my_list->data[now_position].prev    = now_position - 1;
-        my_list->data[now_position].is_used = false;
+    while(!my_list->data[my_list->data[now_position].prev].is_used && now_position > my_list->data[now_position].prev) {
+        now_position = my_list->data[now_position].prev;
     }
 
-    if(begin_position == 0) {
-        my_list->data[0].prev = 0;
-        strcpy(my_list->data[0].value, FICTIVE);
-        my_list->data[0].length_value  = LENGTH_FICTIVE;
-    }
+    return now_position;
 }
 
-void list_destruct(List* my_list) {
-    free(my_list->data);
-
-    my_list->capacity  = INT_POISON;
-    my_list->size_list = INT_POISON;
-    my_list->head      = INT_POISON;
-    my_list->tail      = INT_POISON;
-
-    free(my_list);
-}
-
-LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, const char* key,   const int length_key, 
-                                                                                const char* value, const int length_value) {
+LIST_STATUSES list_insert_after(List* my_list, const size_t physical_position, const char* key,   const size_t length_key, 
+                                                                               const char* value, const size_t length_value) {
     IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
 
-    if(length_value <= 0 || length_key <= 0)
+    if(physical_position > my_list->size_list) {
+        REPORT_ABOUT_ERROR(LIST_NO_SUCH_ELEMENT);
+        return LIST_NO_SUCH_ELEMENT;
+    }
+
+    return list_insert_before(my_list, my_list->data[physical_position].next, key, length_key, value, length_value);
+}
+
+static LIST_STATUSES list_resize(List* my_list, const double quantity) {
+    if(quantity * my_list->capacity > MAX_VALUE_SIZE_T || quantity < 0) {
+        REPORT_ABOUT_ERROR(LIST_OVERFLOW)
+    }
+
+    size_t new_capacity = my_list->capacity * quantity;
+    size_t old_capacity = my_list->capacity;
+
+    my_list->data = (Node*)realloc(my_list->data, (new_capacity + 1) * sizeof(Node));
+    if(!my_list->data) {
+        REPORT_ABOUT_ERROR(LIST_BAD_MEMORY)
+        return LIST_BAD_MEMORY;
+    }
+
+    my_list->capacity = new_capacity;
+
+    if(quantity > 1) {
+        list_initializate(my_list, old_capacity + 1);
+    }
+
+    IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
+
+    return LIST_OK;
+}
+
+static LIST_STATUSES list_insert_first_element(List* my_list, const size_t temporary_free, const char* key,   const size_t length_key, 
+                                                                                           const char* value, const size_t length_value) {
+    my_list->head = temporary_free;
+    my_list->nearest_free                = my_list->data[temporary_free].next;
+
+    for(size_t j = 0; j < length_value; ++j) 
+        my_list->data[my_list->head].value[j] = value[j];
+
+    my_list->data[my_list->head].length_value  = length_value;
+    my_list->data[my_list->head].next          = my_list->head;
+    my_list->data[my_list->head].prev          = my_list->tail;
+    my_list->data[my_list->head].is_used       = true;
+    my_list->tail                              = temporary_free;
+
+    my_list->data[temporary_free].length_value   = (length_value + 1 >= MAX_SIZE_VALUE ? MAX_SIZE_VALUE - 1 : length_value);
+    memcpy(my_list->data[temporary_free].value, value, length_value);
+
+    my_list->data[temporary_free].length_key   = (length_key + 1 >= MAX_SIZE_KEY ? MAX_SIZE_KEY - 1 : length_key);
+    memcpy(my_list->data[temporary_free].key, key, length_key);
+      
+
+    ++(my_list->size_list);
+
+    IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
+
+    return LIST_OK;
+}
+
+LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, const char* key,   const size_t length_key, 
+                                                                                const char* value, const size_t length_value) {
+    IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
+
+    if(0 == length_value  || 0 == length_key)
         return LIST_ERROR;
 
     if(my_list->size_list + 2 >= my_list->capacity) {
@@ -315,13 +379,13 @@ LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, 
         return list_insert_first_element(my_list, temporary_free, key, length_key, value, length_value);
     }
 
-    my_list->data[temporary_free].length_value = (length_value + 1 > MAX_SIZE_WORD ? MAX_SIZE_WORD - 1 : length_value);    
+    my_list->data[temporary_free].length_value = (length_value + 1 > MAX_SIZE_WORD ? MAX_SIZE_WORD - 1 : length_value + 1);    
     memcpy(my_list->data[temporary_free].value, value, my_list->data[temporary_free].length_value);
 
-    my_list->data[temporary_free].length_key = (length_key + 1 > MAX_SIZE_KEY ? MAX_SIZE_KEY - 1 : length_key);       
+    my_list->data[temporary_free].length_key = (length_key + 1 > MAX_SIZE_KEY ? MAX_SIZE_KEY - 1 : length_key + 1);       
     memcpy(my_list->data[temporary_free].key, key, my_list->data[temporary_free].length_key);
 
-    if(my_list->data[physical_position].prev != 0)
+    if(0 != my_list->data[physical_position].prev)
         my_list->data[my_list->data[physical_position].prev].next = temporary_free;
 
     my_list->data[temporary_free].next = physical_position;
@@ -354,45 +418,6 @@ LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, 
     return LIST_OK;
 }
 
-LIST_STATUSES list_insert_after(List* my_list, const size_t physical_position, const char* key,  const int length_key, 
-                                                                               const char* value, const int length_value) {
-    IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
-
-    if(physical_position > my_list->size_list || physical_position < 0) {
-        REPORT_ABOUT_ERROR(LIST_NO_SUCH_ELEMENT);
-        return LIST_NO_SUCH_ELEMENT;
-    }
-
-    return list_insert_before(my_list, my_list->data[physical_position].next, key, length_key, value, length_value);
-}
-
-static LIST_STATUSES list_insert_first_element(List* my_list, const size_t temporary_free, const char* key,   const int length_key, 
-                                                                                           const char* value, const int length_value) {
-    my_list->head = temporary_free;
-    my_list->nearest_free                = my_list->data[temporary_free].next;
-
-    for(int j = 0; j < length_value; ++j) 
-        my_list->data[my_list->head].value[j] = value[j];
-
-    my_list->data[my_list->head].length_value  = length_value;
-    my_list->data[my_list->head].next          = my_list->head;
-    my_list->data[my_list->head].prev          = my_list->tail;
-    my_list->data[my_list->head].is_used       = true;
-    my_list->tail                              = temporary_free;
-
-    my_list->data[temporary_free].length_value   = (length_value + 1 >= MAX_SIZE_VALUE ? MAX_SIZE_VALUE - 1 : length_value);
-    memcpy(my_list->data[temporary_free].value, value, length_value);
-
-    my_list->data[temporary_free].length_key   = (length_key + 1 >= MAX_SIZE_KEY ? MAX_SIZE_KEY - 1 : length_key);
-    memcpy(my_list->data[temporary_free].key, key, length_key);
-      
-
-    ++(my_list->size_list);
-
-    IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
-
-    return LIST_OK;
-}
 /*
 LIST_STATUSES list_insert_back(List* my_list, Elem_type value) {
     LIST_STATUSES status = list_insert_before(my_list, my_list->size_list + 1, value);
@@ -414,41 +439,17 @@ LIST_STATUSES list_insert_front(List* my_list, const Elem_type value) {
     return LIST_OK;
 }
 */
-static LIST_STATUSES list_resize(List* my_list, const double quantity) {
-    if(quantity * my_list->capacity > MAX_VALUE_SIZE_T || quantity < 0) {
-        REPORT_ABOUT_ERROR(LIST_OVERFLOW)
-    }
 
-    int new_capacity = my_list->capacity * quantity;
-    int old_capacity = my_list->capacity;
-
-    my_list->data = (Node*)realloc(my_list->data, (new_capacity + 1) * sizeof(Node));
-    if(!my_list->data) {
-        REPORT_ABOUT_ERROR(LIST_BAD_MEMORY)
-        return LIST_BAD_MEMORY;
-    }
-
-    my_list->capacity = new_capacity;
-
-    if(quantity > 1) {
-        list_initializate(my_list, old_capacity + 1);
-    }
-
+bool list_find_element(List* my_list, const char* value, const size_t length) {
     IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
 
-    return LIST_OK;
-}
-
-bool list_find_element(List* my_list, const char* value, const int length) {
-    IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
-
-    int pointer = my_list->head;
+    size_t pointer = my_list->head;
     bool is_equal = false;
 
     while(pointer != my_list->tail) {
         if(length == my_list->data[pointer].length_value) {
             is_equal = true;
-            for(int j = 0; j < length; ++j) {
+            for(size_t j = 0; j < length; ++j) {
                 if(my_list->data[pointer].value[j] != value[j]) {
                     is_equal = false;
                     break;
@@ -555,16 +556,17 @@ void put_free_position(List* my_list, const size_t position) {
     my_list->nearest_free = get_min_free_position(my_list);
 }*/
 
-static size_t get_min_free_position(List* my_list) {
-    size_t now_position = my_list->nearest_free;
 
-    while(!my_list->data[my_list->data[now_position].prev].is_used && now_position > my_list->data[now_position].prev) {
-        now_position = my_list->data[now_position].prev;
-        printf("\t\t%lu\n", now_position);
-    }
+void list_destruct(List* my_list) {
+    free(my_list->data);
 
-    return now_position;
-}/*
+    my_list->capacity  = INT_POISON;
+    my_list->size_list = INT_POISON;
+    my_list->head      = INT_POISON;
+    my_list->tail      = INT_POISON;
+}
+
+/*
 
 size_t get_max_free_position(List* my_list) {
     IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
@@ -648,7 +650,7 @@ LIST_STATUSES list_very_very_slow_sort(List* my_list) {
 void list_warning(const List* my_list, struct call_of_dump arguments_of_call) {
     system("echo \e[31m-----------------!WARNING!----------------\e[0m");
     char warning_info[SIZE_OF_LIST_WARNINGS] = "";
-    sprintf(warning_info, "echo \"\\e[31mIN FILE %s (FUNCTION %s, LINE %d)\\e[0m\"", arguments_of_call.name_file, arguments_of_call.name_function, arguments_of_call.number_of_line);
+    sprintf(warning_info, "echo \"\\e[31mIN FILE %s (FUNCTION %s, LINE %lu)\\e[0m\"", arguments_of_call.name_file, arguments_of_call.name_function, arguments_of_call.number_of_line);
     system(warning_info);
     sprintf(warning_info, "echo \"\\e[31mList status: %s\\e[0m\"", TEXT_LIST_STATUSES[my_list->list_status]);
     system(warning_info);

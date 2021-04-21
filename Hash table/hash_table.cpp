@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "hash_table.h"
+#include <nmmintrin.h>
 
-extern "C" int asm_get_hash(const char*, const long long, const long long, const long long);		
+extern "C" unsigned int asm_get_hash(const unsigned int, const unsigned int, const unsigned int);		
 
 #define FIRST_ACCELERATION
+#define SECOND_ACCELERATION
 
 #define CHECK_HASH_TABLE_STATUS								\
 	if(status != HASH_TABLE_OKEY) {							\
@@ -16,31 +18,31 @@ HASH_TABLE_STATUSES hash_table_construct(Hash_table_type* hash_table) {
 		return HASH_TABLE_BAD_POINTER;
 
 	hash_table->size_table = SIZE_HASH_TABLE;
-	hash_table->chains = (List*)calloc(hash_table->size_table, sizeof(List));
+	hash_table->chains = (List*)calloc(hash_table->size_table + 5, sizeof(List));
 
 	if(!hash_table->chains)
 		return HASH_TABLE_BAD_POINTER;
 
-	for(int pos = 0; pos < hash_table->size_table; ++pos)
-    	list_construct(&hash_table->chains[pos]);
-
+	for(unsigned int pos = 0; pos < hash_table->size_table; ++pos)
+	   	list_construct(hash_table->chains + pos);
+	
 	return HASH_TABLE_OKEY;
 }
+
+//int counter = 0;
 
 HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_table) {
 	if(!file_with_dict || !file_with_dict->buffer || !hash_table || !hash_table->chains)
 		return HASH_TABLE_BAD_POINTER;
 
 	char* begin_word = file_with_dict->buffer, *ptr_to_key = file_with_dict->buffer;
-	int length_word = 0, length_key = 0;
+	unsigned int length_word = 0, length_key = 0;
 	bool find_key = false;
 
 	if(file_with_dict->buffer[0] != ':')
 		++length_word;
 
-	long long hash_word = 0;
-
-	for(int pos = 0; pos < file_with_dict->size_buffer; ++pos) {
+	for(unsigned int pos = 0; pos < file_with_dict->size_buffer; ++pos) {
 		if(file_with_dict->buffer[pos] == ' ' && !find_key)
 			continue;
 
@@ -56,7 +58,7 @@ HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_t
 			length_word = 0;
 
 		} else if(file_with_dict->buffer[pos] == '\n') {
-			length_word -= 1;
+			--length_word;
 
 			hash_table_insert_element_by_key(hash_table, ptr_to_key, length_key, begin_word, length_word);
 
@@ -64,94 +66,121 @@ HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_t
 			length_word = 1;
 
 			find_key = false;
+			//++counter;
 
 		} else
 			++length_word;
 	}
 
+	//printf("============count: %d\n", counter);
+
 	return HASH_TABLE_OKEY;
 }
 
-unsigned long long get_hash_word(const char* word, const long long length_word) {
-	if(!word || length_word < 0)
+unsigned int get_hash_word(const char* word, const unsigned int length_word) {
+	if(!word)
 		return BAD_HASH;
 
-	unsigned long long hash = 0, delta = 1;
+	unsigned int hash = 0;
 
 	#ifndef FIRST_ACCELERATION
 
-		//printf("Not asm\n");
-		for(long long pos = 0; pos < length_word; ++pos) {
-			hash = (hash + (((256 + word[pos] - 'a') % 256 + 1) * delta) % SIZE_HASH_TABLE) % SIZE_HASH_TABLE;
-			delta += DELTA_FOR_DELTA;
-		printf("%c - %lld (%d, %d)\n", word[pos], hash, word[pos], ((256 + word[pos] - 'a') % 256 + 1));
+		/*size_t delta = 1;
 
+		for(size_t pos = 0; pos < length_word; ++pos) {
+			hash = (hash + (((CONSTANT_TO_HASHING + word[pos] - 'a') % CONSTANT_TO_HASHING + 1) * delta) % SIZE_HASH_TABLE) % SIZE_HASH_TABLE;
+			delta += DELTA_FOR_DELTA;
+		}*/
+
+		#define POLYNOM 0x82f63b78
+		//int length = strlen(word);
+		//printf("%s: %d\n", word, length);
+
+
+		unsigned int iterations_amount = MAX_SIZE_VALUE / 4;
+		for (int i = 0; i < iterations_amount; i++) {
+			unsigned index = i * 4;
+			unsigned number = (((((word[index] << iterations_amount) + word[index + 1]) << iterations_amount) + word[index + 2]) << iterations_amount) + word[index + 3];
+			hash += _mm_crc32_u32(POLYNOM, number);
 		}
 
-	#else
-		//printf("Assembler insertion\n");
-		/*asm (
-			 "mov r12, %1		\n " // r12 = my_string
-			 "xor r10, r10		\n " // r10 = hash
-			 "mov rbx, %2		\n "	// rbx = delta
-			 "mov rcx, %3		\n " // rcx = length
-			 "mov r15, %4		\n " // r15 = SIZE_HASH_TABLE
-			 "mov r14, %5		\n " // r14 = DELTA_FOR_DELTA
-			 "xor r11, r11		\n "
+		hash %= SIZE_HASH_TABLE;
 
-		  "get_hash:			\n "
-			 "cmp rcx, 0		\n "
-			 "je end_get_hash	\n "
-			 "mov r11b, [r12]	\n "
-			 "sub r11b, 96		\n "
-			 "mov rax, r11		\n "
-			 "mul rbx			\n "
-			 "add rbx, r14		\n "
-
-			 "div r15			\n "
-			 "add r10, rdx		\n "
-			 "mov rax, r10		\n "
-			 "div r15			\n "
-			 "mov r10, rdx		\n "
-			 "inc r12			\n "
-			 "dec rcx			\n "
-			 "jmp get_hash 		\n "
-
-		  "end_get_hash:		\n "
-		  	 "mov %0, r10		\n "
-		    : "=r" (hash)
-		    : "r" (word), "r"(delta), "r"(length_word), "r"(SIZE_HASH_TABLE), "r"(DELTA_FOR_DELTA)
-		    : "rax", "rbx", "rcx", "r10", "r11", "r12", "r14", "r15"
-		);*/
-
-
-		hash = asm_get_hash(word, length_word, SIZE_HASH_TABLE, DELTA_FOR_DELTA);
+		/*unsigned int crc = 0;
+		crc = ~crc;
+		for(int i = 0; i < length_word; ++i) {
+			crc ^= word[i];
+			for(int k = 0; k < 8; k++)
+				crc = crc & 1 ? (crc >> 1) ^ POLY2 : crc >> 1;
+		}*/
 		
-		if(!strcmp("a.m.", word))
-			printf("%lld\n", hash);
+		//hash = crc;	
+
+		/*if(counter % 1000 == 0)
+					printf("!!!!!!!!!!!!!! %d\n", counter);
+		++counter;*/
+
+	#else
+
+		//hash = asm_get_hash(word, length_word, SIZE_HASH_TABLE, DELTA_FOR_DELTA);
+		hash = asm_get_hash(0, *(unsigned int*)word, 13);
 
 	#endif
 
 	return hash;
 }
 
-bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* value, const int length, bool is_print_values) {
+bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* value, const unsigned int length, bool is_print_values) {
 	if(!hash_table || !value || length <= 0) 
 		return false;
 
-	unsigned long long hash_word = get_hash_word(value, length);
+	unsigned int hash_word = get_hash_word(value, length);
 
 	if(hash_table->chains[hash_word].size_list <= 0)
 		return false;
 
 	int is_find = 0;
-	int now_pos = hash_table->chains[hash_word].head;
+	unsigned int now_pos = hash_table->chains[hash_word].head;
+	//printf("%lu, hash: %llu\n", (counter++), hash_word);
 
-	for(int word = 0; word < hash_table->chains[hash_word].size_list && now_pos != hash_table->chains[hash_word].tail; ++word) {
-		if(!strcmp(value, hash_table->chains[hash_word].data[now_pos].value)) {
-			is_find = true;
-			break;
-		}
+	for(unsigned int word = 0; word < hash_table->chains[hash_word].size_list && now_pos != hash_table->chains[hash_word].tail; ++word) {
+		#ifndef SECOND_ACCELERATION
+			//printf("!!!first!!! %s (%lu)\n",  value, length);
+			//printf("!!!second!!! %s (%lu)\n", hash_table->chains[hash_word].data[now_pos].value, hash_table->chains[hash_word].data[now_pos].length_value);
+			//printf("\t%d\n", strcmp(value, hash_table->chains[hash_word].data[now_pos].key));
+			if(!strcmp(value, hash_table->chains[hash_word].data[now_pos].key)) {
+				is_find = true;
+				break;
+			}
+
+		#else
+			//printf("\t\tcounter: %d\n", (counter++));
+			int is_equals_first_half = 0, is_equals_second_half = 0;
+
+			asm ("vmovdqu ymm0, [%[first_string]]					\n "
+			     "vmovdqu ymm1, [%[second_string]]					\n "
+			     "vpcmpeqq ymm2, ymm0, ymm1							\n " // 0, if equal
+			     "vpmovmskb %[is_equals_first_half], ymm2			\n " 
+
+			     "vmovdqu ymm0, [[%[first_string]]  + 32]			\n "
+			     "vmovdqu ymm1, [[%[second_string]] + 32]			\n "
+			     "vpcmpeqq ymm2, ymm0, ymm1							\n " // 0, if equal
+			     "vpmovmskb %[is_equals_second_half], ymm2			\n "
+
+			     "not %[is_equals_first_half]						\n "
+			     "not %[is_equals_second_half]						\n "
+				
+			    : [is_equals_first_half]"=&r" (is_equals_first_half), [is_equals_second_half]"=&r"(is_equals_second_half)	
+			    : [first_string]"r" (value), [second_string]"r"(hash_table->chains[hash_word].data[now_pos].value)
+			    : "ymm0", "ymm1", "ymm2", "cc"
+			);
+
+			if(!is_equals_first_half) {
+				is_find = true;
+				break;
+			}
+
+		#endif
 
 		now_pos = hash_table->chains[hash_word].data[now_pos].next;
 	}
@@ -162,15 +191,16 @@ bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* valu
 	return is_find;
 }
 
-HASH_TABLE_STATUSES hash_table_insert_element_by_key(Hash_table_type* hash_table, const char* key, const int length_key, const char* value, const int length_value) {
+HASH_TABLE_STATUSES hash_table_insert_element_by_key(Hash_table_type* hash_table, const char* key,   const unsigned int length_key, 
+																				  const char* value, const unsigned int length_value) {
 	if(!hash_table || !hash_table->chains || !key || !value)
 		return HASH_TABLE_BAD_POINTER; 
 
 	if(length_key <= 0 || length_value <= 0)
 		return HASH_TABLE_BAD_SIZE;
 
-	unsigned long long hash_key = get_hash_word(key, length_key);
-	list_insert_before(&hash_table->chains[hash_key], hash_table->chains[hash_key].size_list + 1, key, length_key, value, length_value);
+	unsigned int hash_key = get_hash_word(key, length_key);
+	list_insert_before(hash_table->chains + hash_key, hash_table->chains[hash_key].size_list + 1, key, length_key, value, length_value);
 
 	return HASH_TABLE_OKEY;
 }
@@ -179,8 +209,8 @@ HASH_TABLE_STATUSES hash_table_destruct(Hash_table_type* hash_table) {
 	if(!hash_table)
 		return HASH_TABLE_OKEY;
 
-	for(int list_number = 0; list_number < hash_table->size_table; ++list_number)
-		free(hash_table->chains[list_number].data);
+	for(unsigned int list_number = 0; list_number < hash_table->size_table; ++list_number)
+		list_destruct(&hash_table->chains[list_number]);
 
 	free(hash_table->chains);
 
@@ -192,15 +222,18 @@ HASH_TABLE_STATUSES testing_hash_table(Hash_table_type* hash_table) {
 		return HASH_TABLE_BAD_POINTER;
 
 
-	for(int test = 0; test < COUNT_OF_TESTS; ++test) {
-		int length_word = rand() % MAX_SIZE_KEY;
-		char word[length_word] = "";
+	for(unsigned int test = 0; test < COUNT_OF_TESTS; ++test) {
+		//printf("test %lu\n", test);
+		unsigned int length_word = rand() % (MAX_SIZE_KEY - 2) + 1;
+		char word[length_word + 1] = "";
 
-		for(int pos = 0; pos < length_word; ++pos) {
-			word[pos] = get_random_symbol() - 'a' + 1;
+		for(unsigned int pos = 0; pos < length_word; ++pos) {
+			word[pos] = get_random_symbol();
 		}
 		
-		//if(hash_table_is_contain_element(hash_table, word, length_word))
+		//printf("\n\nLENGTH\t\t%lu, STRING %s\n", length_word, word);
+		//printf("-----------------------------------\n");
+		hash_table_is_contain_element(hash_table, word, length_word);
 
 	}
 
@@ -208,10 +241,10 @@ HASH_TABLE_STATUSES testing_hash_table(Hash_table_type* hash_table) {
 }
 
 inline char get_random_symbol() {
-	return rand() % ('z' + 1) + 'A';
+	return rand() % ('z' - 'a' + 1) + 'a';
 }
 
-void print_something_chain(Hash_table_type* hash_table, const unsigned long long hash) {
-	for(int i = 0; i < hash_table->chains[hash].size_list; ++i)
+void print_something_chain(Hash_table_type* hash_table, const size_t hash) {
+	for(unsigned int i = 0; i < hash_table->chains[hash].size_list; ++i)
 		printf("%s\n", hash_table->chains[hash].data[i].key);
 }

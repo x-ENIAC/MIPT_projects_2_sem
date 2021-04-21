@@ -59,11 +59,12 @@ const char TEXT_HASH_TABLE_STATUSES[][100] = {
     HASH_TABLE_BAD_POINTER		= 15,*/
 };
 
-const long long FIRST_BIG_NUMBER  = 18522; // 10267;
-const long long SIZE_HASH_TABLE = 131075; // 11719;
-const long long DELTA_FOR_DELTA = 1024;
-const unsigned long long BAD_HASH = 0;
-const unsigned int COUNT_OF_TESTS = 10000;
+const unsigned int FIRST_BIG_NUMBER     = 18522; // 10267;
+const int SIZE_HASH_TABLE      = 8192; // 11719;
+const int DELTA_FOR_DELTA   = 1024;
+const unsigned int BAD_HASH = 0;
+const int COUNT_OF_TESTS       = 100000;
+const int CONSTANT_TO_HASHING     = 256;
 
 struct Hash_table_type {
 	int size_table;
@@ -74,11 +75,12 @@ HASH_TABLE_STATUSES hash_table_construct(Hash_table_type* hash_table);
 
 HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_table);
 
-unsigned long long get_hash_word(const char* word, const long long length_word);
+unsigned int get_hash_word(const char* word, const unsigned int length_word);
 
-bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* value, const int length, bool is_print_values = false);
+bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* value, const unsigned int length, bool is_print_values = false);
 
-HASH_TABLE_STATUSES hash_table_insert_element_by_key(Hash_table_type* hash_table, const char* key, const int length_key, const char* value, const int length_value);
+HASH_TABLE_STATUSES hash_table_insert_element_by_key(Hash_table_type* hash_table, const char* key,   const unsigned int length_key, 
+                                                                                  const char* value, const unsigned int length_value);
 
 HASH_TABLE_STATUSES hash_table_destruct(Hash_table_type* hash_table);
 
@@ -86,4 +88,5 @@ HASH_TABLE_STATUSES testing_hash_table(Hash_table_type* hash_table);
 
 inline char get_random_symbol();
 
-void print_something_chain(Hash_table_type* hash_table, const unsigned long long hash);
+void print_something_chain(Hash_table_type* hash_table, const unsigned int hash);
+

@@ -2,33 +2,24 @@
 #include "warnings.h"
 
 #define Elem_type char*
-#define INFORMATION_ABOUT_CALL (call_of_dump){__FILE__, __LINE__, __FUNCTION__}
 
-const int       MAX_SIZE_WORD            =        300;
-const int       MAX_SIZE_KEY             =         64;
-const int       MAX_SIZE_VALUE           =        300;
-const int       INT_POISON               =      -3802;
-const int       BEGIN_INIT_SIZE          =          8;
-const int       SIZE_OF_NAME_FILES       =         50;
-const int       SIZE_OF_LIST_WARNINGS    =        150;
-const size_t    MAX_VALUE_SIZE_T         = (size_t)-1;
+const size_t       MAX_SIZE_WORD            =        300;
+const size_t       MAX_SIZE_KEY             =         64;
+const size_t       MAX_SIZE_VALUE           =        300;
+const size_t       INT_POISON               =      -3802;
+const size_t       BEGIN_INIT_SIZE          =          8;
+const size_t       SIZE_OF_NAME_FILES       =         50;
+const size_t       SIZE_OF_LIST_WARNINGS    =        150;
+const size_t       MAX_VALUE_SIZE_T         = (size_t)-1;
 
-const char      POISON[8]                = "POISON";
-const int       LENGTH_POISON            = 6;
+const char         POISON[8]                = "POISON";
+const size_t       LENGTH_POISON            = 6;
 
 
-const char      FICTIVE[8]               = "FICTIVE";
-const int       LENGTH_FICTIVE           = 7;
+const char         FICTIVE[8]               = "FICTIVE";
+const size_t       LENGTH_FICTIVE           = 7;
 
-const char name_input_html_file[]        = "list_dump.html";
-
-/*struct call_of_dump {
-    const char* name_file;
-    int number_of_line;
-    const char* name_function;
-};
-
-const struct call_of_dump base_arguments_of_call = {__FILE__, -1, " "};*/
+const char name_input_html_file[]           = "list_dump.html"; 
 
 typedef enum {
     LIST_OK                = 0,
@@ -70,11 +61,11 @@ struct Node {
     bool is_used;
     //Elem_type value;
     char value[MAX_SIZE_VALUE];
-    int length_value;
+    size_t length_value;
 
     //Elem_type key;
     char key[MAX_SIZE_KEY];
-    int length_key;    
+    size_t length_key;    
 };
 
 struct List {
@@ -87,7 +78,7 @@ struct List {
     LIST_STATUSES list_status;
     bool flag_of_sorted;
     size_t nearest_free;
-    int number_of_draw_graph_call;
+    size_t number_of_draw_graph_call;
 };
 
 const char CONTOUR_LABEL_COLOR_FOR_VALID_ELEMENTS[]   = "blue";
@@ -105,11 +96,11 @@ const char ARROW_COLOR_FOR_FICTIVE_ELEMENT[]  = "maroon";
 
 void                    delete_old_information_from_file                       ();
 
-struct call_of_dump     create_struct                                          (const char* file_name, int number, const char* function_name);
+struct call_of_dump     create_struct                                          (const char* file_name, size_t number, const char* function_name);
 
-static void             list_dump                                              (List* my_list, struct call_of_dump arguments_of_call);
+//static void             list_dump                                              (List* my_list, struct call_of_dump arguments_of_call);
 
-static void             list_verifier                                          (List* my_list);
+//static void             list_verifier                                          (List* my_list);
 
 void                    draw_graph                                             (List* my_list);
 
@@ -133,22 +124,22 @@ void                    print_list                                             (
 
 LIST_STATUSES           list_construct                                         (List* my_list, const size_t capacity = BEGIN_INIT_SIZE);
 
-static void             list_initializate                                      (List* my_list, const size_t begin_position = 0);
+//static void             list_initializate                                      (List* my_list, const size_t begin_position = 0);
 
 void                    list_destruct                                          (List* my_list);
 
-LIST_STATUSES           list_insert_before                                     (List* my_list, const size_t physical_position, const char* key, const int length_key, const char* value, const int length_value);
+LIST_STATUSES           list_insert_before                                     (List* my_list, const size_t physical_position, const char* key, const size_t length_key, const char* value, const size_t length_value);
 
-LIST_STATUSES           list_insert_after                                      (List* my_list, const size_t physical_position, const char* key, const int length_key, const char* value, const int length);
+LIST_STATUSES           list_insert_after                                      (List* my_list, const size_t physical_position, const char* key, const size_t length_key, const char* value, const size_t length);
 
-static LIST_STATUSES    list_resize                                            (List* my_list, const double quantity);
+//static LIST_STATUSES    list_resize                                            (List* my_list, const double quantity);
 
-bool                    list_find_element                                      (List* my_list, const char* value, const int length);
+bool                    list_find_element                                      (List* my_list, const char* value, const size_t length);
 
-static LIST_STATUSES    list_insert_first_element                              (List* my_list, const size_t temporary_free, const char* key, const int length_key, const char* value, const int length);
+//static LIST_STATUSES    list_insert_first_element                              (List* my_list, const size_t temporary_free, const char* key, const size_t length_key, const char* value, const size_t length);
 
 void                    put_free_position                                      (List* my_list, const size_t position);
 
-static size_t           get_min_free_position                                  (List* my_list);
+//static size_t           get_min_free_position                                  (List* my_list);
 
 void                    list_warning                                           (List* my_list, struct call_of_dump arguments_of_call = base_arguments_of_call);
