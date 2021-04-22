@@ -5,30 +5,6 @@
 #include <time.h>
 #include "warnings.h"
 
-/*size_t HashFunction() {
-  size_t result = 0;
-
-  __asm__ (
-    ".intel_syntax noprefix \n\t"
-    "xor rax, rax           \n\t"
-    "mov rdx, [rdi]         \n\t"
-    "loop_start:            \n\t"
-    "mov cl, [rdx]          \n\t"
-    "or cl, cl              \n\t"
-    "jz loop_end            \n\t"
-    "crc32 rax, cl          \n\t"
-    "inc rdx                \n\t"
-    "jmp loop_start         \n\t"
-    "loop_end:              \n\t"
-    ".att_syntax            \n\t"
-    : "=a"(result)
-    :
-    : "rcx", "rdx", "rdi"
-  );
-
-  return result;
-}*/
-
 #define VERIFY_FILE_STATUS                                                  \
     if(file_status != FILE_OK) {                                            \
         /*warning(TEXT_FILE_STATUS[file_status], INFORMATION_ABOUT_CALL);*/     \
@@ -74,7 +50,7 @@ int main() {
 
 	printf("not 0: %d\n", count);*/
 
-	//long long hash = get_hash_word("poison");
+	//long long hash = get_hash_word("poison", strlen("poison"));
 	//print_list(&hash_table.chains[hash]);
 
 	hash_table_destruct(&hash_table);

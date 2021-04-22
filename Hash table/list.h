@@ -3,9 +3,9 @@
 
 #define Elem_type char*
 
-const size_t       MAX_SIZE_WORD            =        300;
+const size_t       MAX_SIZE_WORD            =        412;
 const size_t       MAX_SIZE_KEY             =         64;
-const size_t       MAX_SIZE_VALUE           =        300;
+const size_t       MAX_SIZE_VALUE           =        412;
 const size_t       INT_POISON               =      -3802;
 const size_t       BEGIN_INIT_SIZE          =          8;
 const size_t       SIZE_OF_NAME_FILES       =         50;
@@ -56,6 +56,10 @@ const char TEXT_LIST_STATUSES[][80] {
 };
 
 struct Node {
+
+    char key[MAX_SIZE_KEY];
+    size_t length_key;
+
     size_t prev;
     size_t next;
     bool is_used;
@@ -63,9 +67,7 @@ struct Node {
     char value[MAX_SIZE_VALUE];
     size_t length_value;
 
-    //Elem_type key;
-    char key[MAX_SIZE_KEY];
-    size_t length_key;    
+    //Elem_type key;    
 };
 
 struct List {

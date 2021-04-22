@@ -12,7 +12,7 @@ LD = g++
 ASM_PARAMS = -f elf64
 WARNINGS = -Wall -Wextra
 STANDARD = 
-OPTIMIZATION = -O1
+OPTIMIZATION = -O2
 
 CFLAGS = -march=native $(WARNINGS) $(STANDARD) $(OPTIMIZATION) -masm=intel -g
 

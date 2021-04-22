@@ -303,8 +303,10 @@ LIST_STATUSES list_insert_after(List* my_list, const size_t physical_position, c
     return list_insert_before(my_list, my_list->data[physical_position].next, key, length_key, value, length_value);
 }
 
-static LIST_STATUSES list_resize(List* my_list, const double quantity) {
-    if(quantity * my_list->capacity > MAX_VALUE_SIZE_T || quantity < 0) {
+static LIST_STATUSES list_resize(List* my_list, const size_t quantity) {
+    //printf("%llu  :   %lg\n", my_list->capacity, quantity);
+    if((size_t)(quantity * my_list->capacity) > MAX_VALUE_SIZE_T 
+        || quantity < 0) {
         REPORT_ABOUT_ERROR(LIST_OVERFLOW)
     }
 
