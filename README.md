@@ -41,9 +41,13 @@ The second way to get access with an incorrect password is to mess up part of it
 
 ## [Mandelbrot](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Mandelbrot)
 
-## [Cat on table](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Cat%20and%20table)
+(using SSE!)
+
+## [Alpha blending](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Cat%20and%20table)
+
+(using AVX + SFML)
 
 ## [Hash table](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Hash%20table)
 
-Read more here: [investigating the possibility of speeding up a hash table](https://github.com/owl1234/MIPT_projects_2_sem/blob/master/Hash%20table/Report.pdf)
+Read more here: [investigating the possibility of speeding up a hash table](https://github.com/owl1234/MIPT_projects_2_sem/blob/master/Hash%20table/Report.pdf).
 
