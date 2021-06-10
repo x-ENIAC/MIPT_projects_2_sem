@@ -8,6 +8,15 @@ enum Statuses_type {
 	BAD_PICTURES_SIZE   = 8,
 };
 
+const char TEXT_STATUSES[][80] {
+    "All is okey",
+    "Escape pressed",
+    "There was a confusion with pointers",
+    "",
+    "Texture not created",
+    "Your pictures have bad size"
+};
+
 struct Colour {
 	unsigned char red;
 	unsigned char green;
@@ -21,7 +30,7 @@ struct Screen_type {
 	int height_screen;
 };
 
-const int count_repeats_in_measurements = 500;
+const int COUNT_REPEATS_IN_MEASUREMENTS = 2000;
 const int MAX_COLOUR = 256;
 
 const int X_OFFSET = 215;
@@ -45,6 +54,6 @@ bool is_correct_pictures_size(Screen_type* background_picture, Screen_type* fore
 
 Colour pixel_transform_on_overlay(const Colour background_pixel, const Colour foreground_pixel);
 
-void show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::Texture* texture);
+Statuses_type show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::Texture* texture);
 
-void display_picture(sf::Sprite sprite, const int wigth_screen, const int height_screen);
+void display_picture(sf::Sprite* sprite, const int wigth_screen, const int height_screen);
