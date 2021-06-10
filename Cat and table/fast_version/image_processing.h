@@ -84,8 +84,4 @@ inline bool is_correct_pictures_size(Screen_type* background_picture, Screen_typ
 
 Statuses_type show_result_image(Screen_type* background_picture, sf::Sprite* sprite, sf::Texture* texture);
 
-<<<<<<< HEAD
 void display_picture(sf::Sprite* sprite, const int wigth_screen, const int height_screen);
-=======
-void display_picture(sf::Sprite* sprite, const int wigth_screen, const int height_screen);
->>>>>>> 3e2b7b1cb6a363b52cce91b6d9f20acc6fa79cb3
