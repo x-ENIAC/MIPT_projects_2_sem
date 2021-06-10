@@ -3,8 +3,16 @@
 #include "image_processing.h"
 #include <SFML/Graphics.hpp>
 
+<<<<<<< HEAD
 #define DRAW_FLAG
 
+=======
+<<<<<<< HEAD
+#define DRAWING
+
+=======
+>>>>>>> 3e2b7b1cb6a363b52cce91b6d9f20acc6fa79cb3
+>>>>>>> 976cf3d308d113ead3ab18b5b457d46944dd6ab1
 #define CHECK_STATUS													\
 	if(status != ALL_IS_OKEY) {											\
 		printf("Bad; status = %s\n", TEXT_STATUSES[status]);			\
@@ -114,10 +122,22 @@ Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_
 	measurements(background_picture, foreground_picture);
 	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 
+<<<<<<< HEAD
 	#ifdef DRAW_FLAG
 	status = show_result_image(background_picture, &sprite, &texture);
 	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 	#endif
+=======
+<<<<<<< HEAD
+	#ifdef DRAWING
+	show_result_image(background_picture, &sprite, &texture);
+	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
+	#endif
+=======
+	//show_result_image(background_picture, &sprite, &texture);
+	//CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
+>>>>>>> 3e2b7b1cb6a363b52cce91b6d9f20acc6fa79cb3
+>>>>>>> 976cf3d308d113ead3ab18b5b457d46944dd6ab1
 
 	return status;
 }

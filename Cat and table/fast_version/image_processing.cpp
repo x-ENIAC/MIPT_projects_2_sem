@@ -1,8 +1,16 @@
 #include <stdio.h>
 #include "image_processing.h"
 
+<<<<<<< HEAD
 //#define DRAW_FLAG
 
+=======
+<<<<<<< HEAD
+#define DRAWING
+
+=======
+>>>>>>> 3e2b7b1cb6a363b52cce91b6d9f20acc6fa79cb3
+>>>>>>> 976cf3d308d113ead3ab18b5b457d46944dd6ab1
 #define CHECK_STATUS													\
 	if(status != ALL_IS_OKEY) {											\
 		printf("Bad; status = %s\n", TEXT_STATUSES[status]);			\
@@ -105,10 +113,22 @@ Statuses_type start_overlaying_pictures(Screen_type* background_picture, Screen_
 	status = measurements(background_picture, foreground_picture);
 	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 
+<<<<<<< HEAD
 	#ifdef DRAW_FLAG
 	status = show_result_image(background_picture, &sprite, &texture);
 	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
 	#endif
+=======
+<<<<<<< HEAD
+	#ifdef DRAWING
+	status = show_result_image(background_picture, &sprite, &texture);
+	CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
+	#endif
+=======
+	//status = show_result_image(background_picture, &sprite, &texture);
+	//CHECK_STATUS_AND_RETURN_IF_NOT_OKEY
+>>>>>>> 3e2b7b1cb6a363b52cce91b6d9f20acc6fa79cb3
+>>>>>>> 976cf3d308d113ead3ab18b5b457d46944dd6ab1
 
 	return status;
 }
@@ -217,12 +237,21 @@ Statuses_type show_result_image(Screen_type* background_picture, sf::Sprite* spr
 
 	for(int x_coordinate = 0; x_coordinate < background_picture->height_screen; ++x_coordinate) {
 		for(int y_coordinate = 0; y_coordinate < background_picture->wigth_screen; ++y_coordinate) {
+<<<<<<< HEAD
 
 			sf::Color now_color(background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].red,
 								background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].green,
 								background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].blue,
 								background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].alpha);
 
+=======
+
+			sf::Color now_color(background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].red,
+								background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].green,
+								background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].blue,
+								background_picture->pixels[x_coordinate * background_picture->wigth_screen + y_coordinate].alpha);
+
+>>>>>>> 3e2b7b1cb6a363b52cce91b6d9f20acc6fa79cb3
 			result_image.setPixel(y_coordinate, x_coordinate, now_color);
 		}
 	}
@@ -250,4 +279,8 @@ void display_picture(sf::Sprite* sprite, const int wigth_screen, const int heigh
 	}
 
 	return;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 3e2b7b1cb6a363b52cce91b6d9f20acc6fa79cb3
