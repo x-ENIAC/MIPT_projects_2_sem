@@ -1,5 +1,7 @@
 We have two pictures - AskhatCat.bmp and table.bmp. We want to put the cat on the tennis table. The following formula was used in the work:
-** colour_res = (colour_front * alpha + color_back * (1 - alpha)) / 256 **, 
+
+**colour_res = (colour_front * alpha + color_back * (1 - alpha)) / 256**, 
+
 where alpha is the transparency of the current pixel. This formula calculates a new value for all pixels for red, blue, and green, respectively.
 
 Writing the program that makes alpha-blending is not a very big task. I decided to the measurement the time of work of the program. The results weren't very satisfying, so I started thinking about how I could improve them.
@@ -11,6 +13,7 @@ The screenshot shows the results of accelerating the program. In the upper windo
 Let's look at the table that summarizes the results:
 
 | Program | With drawing (ms) | Without drawing (ms) |
+|----------------|--------|----------------|
 | Without acceleration | 414 | 406 | 
 | With acceleration | 300 | 295 |
 
