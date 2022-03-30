@@ -235,7 +235,7 @@ static void list_initializate(List* my_list, const size_t begin_position) {
     for(size_t now_position = begin_position; now_position <= my_list->capacity; ++now_position) {
         //my_list->data[now_position].value   = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
         //my_list->data[now_position].key     = ""; // (char*)calloc(MAX_SIZE_WORD, sizeof(char));
-        strcpy(my_list->data[now_position].value, POISON);
+        memcpy(my_list->data[now_position].value, POISON, LENGTH_POISON - 1);
         my_list->data[now_position].length_value  = LENGTH_POISON;
 
         my_list->data[now_position].next    = now_position + 1;
@@ -245,7 +245,7 @@ static void list_initializate(List* my_list, const size_t begin_position) {
 
     if(begin_position == 0) {
         my_list->data[0].prev = 0;
-        strcpy(my_list->data[0].value, FICTIVE);
+        memcpy(my_list->data[0].value, FICTIVE, LENGTH_FICTIVE - 1);
         my_list->data[0].length_value  = LENGTH_FICTIVE;
     }
 }
@@ -303,14 +303,14 @@ LIST_STATUSES list_insert_after(List* my_list, const size_t physical_position, c
     return list_insert_before(my_list, my_list->data[physical_position].next, key, length_key, value, length_value);
 }
 
-static LIST_STATUSES list_resize(List* my_list, const size_t quantity) {
+static LIST_STATUSES list_resize(List* my_list, const double quantity) {
     //printf("%llu  :   %lg\n", my_list->capacity, quantity);
-    if((size_t)(quantity * my_list->capacity) > MAX_VALUE_SIZE_T 
-        || quantity < 0) {
+    if((size_t)(quantity * my_list->capacity) > MAX_VALUE_SIZE_T || (size_t)quantity < 0) {
         REPORT_ABOUT_ERROR(LIST_OVERFLOW)
     }
+    //printf("%llu  :   %lg\n", my_list->capacity, quantity);
 
-    size_t new_capacity = my_list->capacity * quantity;
+    size_t new_capacity = my_list->capacity * (size_t)quantity;
     size_t old_capacity = my_list->capacity;
 
     my_list->data = (Node*)realloc(my_list->data, (new_capacity + 1) * sizeof(Node));
@@ -381,12 +381,24 @@ LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, 
         return list_insert_first_element(my_list, temporary_free, key, length_key, value, length_value);
     }
 
-    my_list->data[temporary_free].length_value = (length_value + 1 > MAX_SIZE_WORD ? MAX_SIZE_WORD - 1 : length_value + 1);    
-    memcpy(my_list->data[temporary_free].value, value, my_list->data[temporary_free].length_value);
+    //printf("!!!\n");
+    my_list->data[temporary_free].length_value = (length_value + 1 > MAX_SIZE_VALUE ? MAX_SIZE_VALUE : length_value + 1); 
+    size_t amount = my_list->data[temporary_free].length_value - 1;   
+    //printf(")))\n");
 
-    my_list->data[temporary_free].length_key = (length_key + 1 > MAX_SIZE_KEY ? MAX_SIZE_KEY - 1 : length_key + 1);       
-    memcpy(my_list->data[temporary_free].key, key, my_list->data[temporary_free].length_key);
+    memcpy(my_list->data[temporary_free].value, value, amount * sizeof(char));
 
+    //printf("&&&\n");
+    my_list->data[temporary_free].length_key = MAX_SIZE_KEY; //(length_key + 1 > MAX_SIZE_KEY ? MAX_SIZE_KEY : length_key + 1); 
+    //amount = my_list->data[temporary_free].length_key - 1; 
+    //printf("length key: %lu\n", my_list->data[temporary_free].length_key);
+      
+    //printf("(((\n");
+    //printf("length key: %d\n\n", my_list->data[temporary_free].length_key);
+    //memset(my_list->data[temporary_free].key, 0, MAX_SIZE_KEY * sizeof(char));
+    memcpy(my_list->data[temporary_free].key, key, length_key * sizeof(char));
+
+    //printf("???\n");
     if(0 != my_list->data[physical_position].prev)
         my_list->data[my_list->data[physical_position].prev].next = temporary_free;
 
@@ -416,6 +428,8 @@ LIST_STATUSES list_insert_before(List* my_list, const size_t physical_position, 
     IF_DEBUG(list_verifier(my_list, INFORMATION_ABOUT_CALL);)
 
     //print_list(my_list);
+
+    //printf("!!!\n\n");
 
     return LIST_OK;
 }

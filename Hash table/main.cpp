@@ -7,13 +7,11 @@
 
 #define VERIFY_FILE_STATUS                                                  \
     if(file_status != FILE_OK) {                                            \
-        /*warning(TEXT_FILE_STATUS[file_status], INFORMATION_ABOUT_CALL);*/     \
         return file_status;                                                 \
     }
 
 #define VERIFY_HASH_TABLE_STATUS                                                  		  \
     if(hash_table_status != HASH_TABLE_OKEY) {                                            \
-        /*warning(TEXT_HASH_TABLE_STATUSES[hash_table_status], INFORMATION_ABOUT_CALL);*/     \
         return hash_table_status;             		                                      \
     }
 
@@ -43,15 +41,10 @@ int main() {
 
 	printf("\n%lu ms\n", (end_time - begin_time) / 1000);
 
-	/*int count = 0;
-	for(int i = 0; i < SIZE_HASH_TABLE; ++i)
-		if(hash_table.chains[i].size_list != 0)
-			++count;
-
-	printf("not 0: %d\n", count);*/
-
-	//long long hash = get_hash_word("poison", strlen("poison"));
-	//print_list(&hash_table.chains[hash]);
+	char* test = (char*)calloc(MAX_SIZE_KEY, sizeof(char));
+	memcpy(test, "poison", strlen("poison") * sizeof(char));
+	uint32_t hash = get_hash_word(test);
+	print_list(&hash_table.chains[hash]);
 
 	hash_table_destruct(&hash_table);
 	file_destruct(&file_with_dict);

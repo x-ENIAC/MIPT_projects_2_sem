@@ -18,3 +18,7 @@ Let's look at the table that summarizes the results:
 | With acceleration | 300 | 295 |
 
 So, we can see that the program has accelerated by about 28% (without rendering, the percentage is 27.5, which is approximately equal to that obtained with rendering). The measurements were carried out with the optimization -O1.
+
+By the way, the result of overlaying images looks very nice regardless of the presence or absence of accelerations:
+
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Cat%20and%20table/picture.png" alt="drawing" width="600"/>

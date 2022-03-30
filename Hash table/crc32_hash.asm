@@ -20,3 +20,21 @@ asm_get_hash:
 	sub eax, edi
 
 	ret
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	

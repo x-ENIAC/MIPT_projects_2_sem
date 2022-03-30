@@ -12,12 +12,12 @@ const size_t       SIZE_OF_NAME_FILES       =         50;
 const size_t       SIZE_OF_LIST_WARNINGS    =        150;
 const size_t       MAX_VALUE_SIZE_T         = (size_t)-1;
 
-const char         POISON[8]                = "POISON";
-const size_t       LENGTH_POISON            = 6;
+const char         POISON[]                 = "POISON";
+const size_t       LENGTH_POISON            = 7;
 
 
-const char         FICTIVE[8]               = "FICTIVE";
-const size_t       LENGTH_FICTIVE           = 7;
+const char         FICTIVE[]                = "FICTIVE";
+const size_t       LENGTH_FICTIVE           = 8;
 
 const char name_input_html_file[]           = "list_dump.html"; 
 

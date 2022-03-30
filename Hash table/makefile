@@ -12,14 +12,14 @@ LD = g++
 ASM_PARAMS = -f elf64
 WARNINGS = -Wall -Wextra
 STANDARD = 
-OPTIMIZATION = -O2
+OPTIMIZATION = -O1
 
 CFLAGS = -march=native $(WARNINGS) $(STANDARD) $(OPTIMIZATION) -masm=intel -g
 
 .PHONY : all run debug clean
 
 all: hash_table.o work_with_file.o warnings.o list.o crc32_hash.o
-	$(CPP) $(CFLAGS) -c main.cpp -o main.o -g
+	$(CPP) $(CFLAGS) -c main.cpp -o main.o
 	$(LD) -march=native main.o hash_table.o work_with_file.o warnings.o list.o crc32_hash.o -o $(CUR_PROG)
 
 hash_table.o: hash_table.cpp hash_table.h

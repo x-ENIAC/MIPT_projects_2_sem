@@ -47,6 +47,13 @@ HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_t
 		if(file_with_dict->buffer[pos] == ':') {
 			--length_word;
 
+			/*if(length_word >= 64) {
+				char* ptr = begin_word;
+				for(int i = 0; i < length_word; ++i)
+					printf("%c", ptr[i]);
+				printf("\n!!!!\n");
+			}*/		
+
 			ptr_to_key  = begin_word;
 			length_key  = length_word;
 			begin_word  = file_with_dict->buffer + pos + 2;
@@ -58,13 +65,13 @@ HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_t
 		} else if(file_with_dict->buffer[pos] == '\n') {
 			--length_word;
 
+
 			hash_table_insert_element_by_key(hash_table, ptr_to_key, length_key, begin_word, length_word);
 
 			begin_word  = file_with_dict->buffer + pos + 1;	
 			length_word = 1;
 
 			find_key = false;
-			//++counter;
 
 		} else
 			++length_word;
@@ -73,9 +80,7 @@ HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_t
 	return HASH_TABLE_OKEY;
 }
 
-int counter = 0;
-
-uint32_t get_hash_word(const char* word, const uint32_t length_word) {
+uint32_t get_hash_word(const char* word) {
 	if(!word)
 		return BAD_HASH;
 
@@ -83,18 +88,23 @@ uint32_t get_hash_word(const char* word, const uint32_t length_word) {
 
 	#ifndef FIRST_ACCELERATION
 
-		uint32_t iterations_amount = MAX_SIZE_VALUE / 4;
-		for (int iter = 0; iter < iterations_amount; ++iter) {
+		uint32_t iterations_amount = MAX_SIZE_KEY / 4;
+		for (uint32_t iter = 0; iter < iterations_amount; ++iter) {
 			uint32_t index = iter * 4;
-			unsigned number = (((((word[index] << iterations_amount) + word[index + 1]) << iterations_amount) + word[index + 2]) << iterations_amount) + word[index + 3];
+			unsigned number = (((((word[index]      << SIZEOF_CHAR) 
+				   				 + word[index + 1]) << SIZEOF_CHAR) 
+								 + word[index + 2]) << SIZEOF_CHAR) 
+								 + word[index + 3];
+
 			hash += _mm_crc32_u32(POLYNOM_FOR_CRC32, number);
 		}
 
 		hash %= SIZE_HASH_TABLE;
 
+
 	#else
 
-		hash = asm_get_hash(0, *(uint32_t*)word, 13);
+		hash = asm_get_hash(0, *(uint32_t*)word, POWER_TWO_THAN_EQUAL_SIZE_HASH_TABLE);
 
 	#endif
 
@@ -105,7 +115,7 @@ bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* valu
 	if(!hash_table || !value || length <= 0) 
 		return false;
 
-	uint32_t hash_word = get_hash_word(value, length);
+	uint32_t hash_word = get_hash_word(value);
 
 	if(hash_table->chains[hash_word].size_list <= 0)
 		return false;
@@ -181,8 +191,16 @@ HASH_TABLE_STATUSES hash_table_insert_element_by_key(Hash_table_type* hash_table
 	if(length_key <= 0 || length_value <= 0)
 		return HASH_TABLE_BAD_SIZE;
 
-	uint32_t hash_key = get_hash_word(key, length_key);
-	list_insert_before(hash_table->chains + hash_key, hash_table->chains[hash_key].size_list + 1, key, length_key, value, length_value);
+
+	uint32_t shortened_length_key = length_key;
+	if(length_key >= MAX_SIZE_KEY)
+		shortened_length_key = MAX_SIZE_KEY;
+
+	char* shortened_key = (char*)calloc(MAX_SIZE_KEY, sizeof(char));
+	memcpy(shortened_key, key, shortened_length_key * sizeof(char));
+	uint32_t hash_key = get_hash_word(shortened_key);
+
+	list_insert_before(hash_table->chains + hash_key, hash_table->chains[hash_key].size_list + 1, key, shortened_length_key, value, length_value);
 
 	return HASH_TABLE_OKEY;
 }
@@ -206,6 +224,7 @@ HASH_TABLE_STATUSES testing_hash_table(Hash_table_type* hash_table) {
 
 	for(uint32_t test = 0; test < COUNT_OF_TESTS; ++test) {
 		uint32_t length_word = rand() % (MAX_SIZE_KEY - 2) + 1;
+
 		char word[length_word + 1] = "";
 
 		for(uint32_t pos = 0; pos < length_word; ++pos) {

@@ -60,13 +60,15 @@ const char TEXT_HASH_TABLE_STATUSES[][100] = {
     HASH_TABLE_BAD_POINTER		= 15,*/
 };
 
-const uint32_t FIRST_BIG_NUMBER     = 18522; // 10267;
-const uint32_t SIZE_HASH_TABLE      = 8192; // 11719;
-const uint32_t DELTA_FOR_DELTA   = 1024;
-const uint32_t BAD_HASH = 0;
-const uint32_t COUNT_OF_TESTS       = 100000;
-const uint32_t CONSTANT_TO_HASHING     = 256;
-const uint32_t POLYNOM_FOR_CRC32 = 0x82f63b78;
+const uint32_t FIRST_BIG_NUMBER                     = 18522; // 10267;
+const uint32_t SIZE_HASH_TABLE                      = 8192; // 11719;
+const uint32_t DELTA_FOR_DELTA                      = 1024;
+const uint32_t POWER_TWO_THAN_EQUAL_SIZE_HASH_TABLE = 13;
+const uint32_t BAD_HASH                             = 0;
+const uint32_t COUNT_OF_TESTS                       = 100000;
+const uint32_t CONSTANT_TO_HASHING                  = 256;
+const uint32_t POLYNOM_FOR_CRC32                    = 0x82f63b78;
+const uint32_t SIZEOF_CHAR                          = 8;
 
 struct Hash_table_type {
 	uint32_t size_table;
@@ -77,7 +79,7 @@ HASH_TABLE_STATUSES hash_table_construct(Hash_table_type* hash_table);
 
 HASH_TABLE_STATUSES parsing_buffer(File* file_with_dict, Hash_table_type* hash_table);
 
-uint32_t get_hash_word(const char* word, const uint32_t length_word);
+uint32_t get_hash_word(const char* word); 
 
 bool hash_table_is_contain_element(Hash_table_type* hash_table, const char* value, const uint32_t length, bool is_print_values = false);
 
