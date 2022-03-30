@@ -17,13 +17,15 @@ The input data is supposed to be an English-Russian dictionary with more than 65
 
 Below are the formulas for calculating the acceleration factors:
 
-<!-- <img src="https://github.com/x-ENIAC/MIPT_projects_3_sem/blob/master/Graphics_editor/examples/2.jpg" alt="drawing2" width="600"/> -->
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/1.jpg" alt="drawing1" width="200"/>
 
-where time_1 and time_{2} - results before and and after accelerations.
+where time_1 and time_2 - results before and and after accelerations.
 
 To calculate the total acceleration by the formula, we will use the following formula: 
 
-where lines_{assembler} - the number of lines rewritten in assembler.
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/2.jpg" alt="drawing2" width="400"/>
+
+where lines_assembler - the number of lines rewritten in assembler.
 
 
 ## Work progress
@@ -32,7 +34,7 @@ where lines_{assembler} - the number of lines rewritten in assembler.
 
 Let's analyze how the program functions work using callgrind.
 
-<!-- callgring 1 -->
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_1.jpg" alt="drawing3" width="600"/>
 
 Profiling by the category "self" showed that the longest functions (that be written not by developers C++) is:
 
@@ -51,17 +53,15 @@ Great, we found two functions that we want to speed up. Let's get down to deal!
 First, let's optimize the function that calculates the hash of words. Crc32 was chosen as the hashing algorithm, the polynomial 0x82f63b78 was used. The optimization took 11 lines in the assembler, in which the hash is calculated.
 
 
-<!-- callgring 2 -->
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/asm_first_optimization.jpg" alt="drawing4" width="400"/>
 
 ### First comparison
 
 You can see the optimization results (performance comparison) in \textbf{Figure 3} and \textbf{Table 1}.
 
-<!-- callgring 3 -->
-
 With the optimization flag -O1, you can notice the following: according to formula (1), the program has accelerated 1.24 times, and Ded's number (formula (2)) is approximately equal to 112. This optimization has accelerated the work of the program by 19\%.
 
-<!-- callgring 4 -->
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_2.jpg" alt="drawing5" width="400"/>
 
 Let's try to speed up the following function.
 
@@ -72,14 +72,14 @@ As you can see from the analysis above, the next longest execution time function
 In \textbf{Figure 4}, you can see an assembler insertion that replaces the search loop and strcmp. The number of lines written in assembler is 24.
 
 
-<!-- callgring 5 -->
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/asm_second_optimization.jpg" alt="drawing6" width="600"/>
 
 ### Second comparison
 
 Now let's compare programs with one and two optimizations. The second optimization has accelerated the work of the program by 1.6\%. \textbf{Figure 5} and \textbf{Table 2} illustrate the results of this acceleration.
 
 
-<!-- callgring 6 -->
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_3.jpg" alt="drawing7" width="600"/>
 
 Comparison of times before and after the first and both accelerations.
 
@@ -97,7 +97,7 @@ Now let's compare the initial and final (with two accelerations) versions. \text
 Comparison of times before and after accelerations.
 
 
-<!-- callgring 9 -->
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_4.jpg" alt="drawing8" width="600"/>
 Comparison of times before and after both accelerations (-O1).
 
 
@@ -112,18 +112,4 @@ Results of this investigation can be divided into three parts:
 * Boosting with using different flags.
 * 
 That shows different ways of decreasing the time program works.
-
-
-<!-- 
-
-\section{References}
-\begin{itemize}
-  \item Author's github page: https://github.com/owl1234/MIPT\underline{\hspace{1mm}}projects\underline{\hspace{1mm}} 2\underline{\hspace{1mm}}sem/tree/master/Hash%20table
-  \item Intel website with intrinsics: https://software.intel.com/sites/landingpage/IntrinsicsGuide
-  \item Documentation for using extended assembly: https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
-\end{itemize}
-
-\bibliographystyle{plain}
-\end{document} -->
-
 
