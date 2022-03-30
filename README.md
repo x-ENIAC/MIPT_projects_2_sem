@@ -1,5 +1,5 @@
 
-Well, this repo is created for 2 semester study projects at MIPT. Below you can see the names of the projects and their small descriptions.
+This repo is created for 2 semester study projects at MIPT. Below you can see the names of the projects and their small descriptions.
 
 ## [Drawing a frame](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Draw%20frame)
 
@@ -41,11 +41,11 @@ The second way to get access with an incorrect password is to mess up part of it
 
 ## [Mandelbrot](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Mandelbrot)
 
-(using SSE!)
+Drawing the Mandelbrot set and accelerating it. (using SSE!)
 
 ## [Alpha blending](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Cat%20and%20table)
 
-(using AVX + SFML)
+Image overlay optimization. (using AVX + SFML)
 
 ## [Hash table](https://github.com/owl1234/MIPT_projects_2_sem/tree/master/Hash%20table)
 

@@ -1,3 +1,4 @@
+The information below is also in the following [file](https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Report.pdf).
 
 # Hash table optimization
 
@@ -53,52 +54,70 @@ Great, we found two functions that we want to speed up. Let's get down to deal!
 First, let's optimize the function that calculates the hash of words. Crc32 was chosen as the hashing algorithm, the polynomial 0x82f63b78 was used. The optimization took 11 lines in the assembler, in which the hash is calculated.
 
 
-<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/asm_first_optimization.jpg" alt="drawing4" width="400"/>
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/asm_first_optimization.jpg" alt="drawing4" width="200"/>
 
 ### First comparison
 
-You can see the optimization results (performance comparison) in \textbf{Figure 3} and \textbf{Table 1}.
+You can see the optimization results (performance comparison) in the picture and table below.
 
-With the optimization flag -O1, you can notice the following: according to formula (1), the program has accelerated 1.24 times, and Ded's number (formula (2)) is approximately equal to 112. This optimization has accelerated the work of the program by 19\%.
+With the optimization flag -O1, you can notice the following: according to formula (1), the program has accelerated 1.24 times, and Ded's number (formula (2)) is approximately equal to 112. This optimization has accelerated the work of the program by 19%.
 
-<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_2.jpg" alt="drawing5" width="400"/>
+Comparison of times before and after the first acceleration (-O1):
+
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_2.jpg" alt="drawing5" width="900"/>
+
+Comparison of times before and after the first acceleration:
+
+| Values | -O1 |
+|----------------|----------------|
+| coeff_boost | 1.24 |
+| coeff_total_accelerate | 112 |
+| Runtime without optimize (ms) | 56 |
+| Runtime with first optimizes (ms) | 43 |
 
 Let's try to speed up the following function.
 
 ### Optimization №2
 
-As you can see from the analysis above, the next longest execution time function is hash_table_is_contain__element. This function contains a call to a hash function and a loop that loops through the list and looks for a search word. Note that the loop contains a call to the strcmp function, which checks the strings for equivalence. Let's be honest: this function is already sped up (it takes over 800 lines in assembler!). But if the word length is fixed and equal to a power of two, we can use the SSE registers. So it was decided to rewrite the entire search loop (including the strcmp that is used in the search loop) by assembler insertion using Intel syntax.
+As you can see from the analysis above, the next longest execution time function is hash_table_is_contain_element. This function contains a call to a hash function and a loop that loops through the list and looks for a search word. Note that the loop contains a call to the strcmp function, which checks the strings for equivalence. Let's be honest: this function is already sped up (it takes over 800 lines in assembler!). But if the word length is fixed and equal to a power of two, we can use the SSE registers. So it was decided to rewrite the entire search loop (including the strcmp that is used in the search loop) by assembler insertion using Intel syntax.
 
-In \textbf{Figure 4}, you can see an assembler insertion that replaces the search loop and strcmp. The number of lines written in assembler is 24.
-
+In the picture below, you can see an assembler insertion that replaces the search loop and strcmp. The number of lines written in assembler is 24.
 
 <img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/asm_second_optimization.jpg" alt="drawing6" width="600"/>
 
 ### Second comparison
 
-Now let's compare programs with one and two optimizations. The second optimization has accelerated the work of the program by 1.6\%. \textbf{Figure 5} and \textbf{Table 2} illustrate the results of this acceleration.
+Now let's compare programs with one and two optimizations. The second optimization has accelerated the work of the program by 1.6%. This picture and table illustrate the results of this acceleration.
 
+Comparison of times before and after the first and both accelerations:
 
-<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_3.jpg" alt="drawing7" width="600"/>
+| Values | -O1 |
+|----------------|----------------|
+| coeff_boost | 1.02 |
+| coeff_total_accelerate | 42 |
+| Runtime without optimize (ms) | 43 |
+| Runtime with first optimizes (ms) | 37 |
 
-Comparison of times before and after the first and both accelerations.
+Comparison of times after the first and both accelerations (-O1):
 
-
-<!-- callgring 7 -->
-Comparison of times after the first and both accelerations (-O1).
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_3.jpg" alt="drawing7" width="900"/>
 
 ### Final comparison
 
-Now let's compare the initial and final (with two accelerations) versions. \textbf{Table 3} and \textbf{Figure 6} show the final acceleration of the program with two assembler insertions.
+Now let's compare the initial and final (with two accelerations) versions.
 
+Comparison of times before and after accelerations:
 
-<!-- callgring 8 -->
+| Values | -O1 |
+|----------------|----------------|
+| coeff_boost | 1.36 |
+| coeff_total_accelerate | 36 |
+| Runtime without optimize (ms) | 56 |
+| Runtime with first optimizes (ms) | 37 |
 
-Comparison of times before and after accelerations.
+Comparison of times before and after both accelerations (-O1):
 
-
-<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_4.jpg" alt="drawing8" width="600"/>
-Comparison of times before and after both accelerations (-O1).
+<img src="https://github.com/x-ENIAC/MIPT_projects_2_sem/blob/master/Hash%20table/Pictures_for_readme/log_callgrind_4.jpg" alt="drawing8" width="900"/>
 
 
 ## Results
@@ -110,6 +129,9 @@ Results of this investigation can be divided into three parts:
 * Boosting with assembly lines.
 * Boosting calculating the hash using intrinsics.
 * Boosting with using different flags.
-* 
+
 That shows different ways of decreasing the time program works.
 
+# References
+* Intel website with intrinsics: https://software.intel.com/sites/landingpage/IntrinsicsGuide
+* Documentation for using extended assembly: https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.htm
