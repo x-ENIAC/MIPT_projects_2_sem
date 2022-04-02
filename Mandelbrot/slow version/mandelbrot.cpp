@@ -11,8 +11,8 @@ Statuses_type start_work_with_window(Mandelbrot_params* parameters) {
 }
 
 Statuses_type draw_mandelbrot(Mandelbrot_params* parameters) {
-    bool is_window_open = true;
-    	while(is_window_open) {
+	bool is_window_open = true;
+		while(is_window_open) {
 			if(is_escape_pressed()) {
 				is_window_open = false;
 				break;
@@ -27,12 +27,12 @@ Statuses_type draw_mandelbrot(Mandelbrot_params* parameters) {
 			} else if(is_shift_left_pressed()) {
 				parameters->x_center -= parameters->dx * (is_shift_pressed() ? parameters->big_delta : parameters->small_delta);
 			} else if(is_shift_down_pressed()) {
-		        parameters->y_center += parameters->dy * (is_shift_pressed() ? parameters->big_delta : parameters->small_delta);
-		    } else if(is_shift_up_pressed()) {
-		        parameters->y_center -= parameters->dy * (is_shift_pressed() ? parameters->big_delta : parameters->small_delta);
-		    }			
+				parameters->y_center += parameters->dy * (is_shift_pressed() ? parameters->big_delta : parameters->small_delta);
+			} else if(is_shift_up_pressed()) {
+				parameters->y_center -= parameters->dy * (is_shift_pressed() ? parameters->big_delta : parameters->small_delta);
+			}			
 
-		    //clock_t start_time = clock();
+			//clock_t start_time = clock();
 			Statuses_type now_status = draw_points(parameters);
 			if(now_status == ESCAPE_PRESSED) {
 				is_window_open = false;
@@ -44,12 +44,12 @@ Statuses_type draw_mandelbrot(Mandelbrot_params* parameters) {
 			//printf("Time passed: %ld ms\n", (end_time - start_time));			
 
 			printf("\t\r%.0lf", txGetFPS());
-	        txSleep();
+			txSleep();
 		}
 
 	txSleep();
 
-    return ALL_IS_OKEY;
+	return ALL_IS_OKEY;
 }
 
 Statuses_type draw_points(Mandelbrot_params* parameters) {

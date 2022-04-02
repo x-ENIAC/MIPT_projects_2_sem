@@ -9,7 +9,7 @@
 
 
 int main() {
- 	Mandelbrot_params parameters = {
+	Mandelbrot_params parameters = {
 		400,			// wigth_screen
 		400,			// height_screen
 		10000,			// max_steps
@@ -25,14 +25,14 @@ int main() {
 
 	Statuses_type status = ALL_IS_OKEY;
 	status = start_work_with_window(&parameters);
-    CHECK_STATUS
+	CHECK_STATUS
 
 	Screen_type* screen = screen_new(&parameters);    
 
 	draw_mandelbrot(screen);
 
-    screen_delete(screen);
-    CHECK_STATUS
+	screen_delete(screen);
+	CHECK_STATUS
 
 	return ALL_IS_OKEY;
 }

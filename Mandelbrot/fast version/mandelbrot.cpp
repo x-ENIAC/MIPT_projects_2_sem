@@ -38,8 +38,8 @@ Statuses_type start_work_with_window(const Mandelbrot_params* parameters) {
 }
 
 Statuses_type draw_mandelbrot(Screen_type* screen) {
-    bool is_window_open = true;
-    	while(is_window_open) {
+	bool is_window_open = true;
+		while(is_window_open) {
 			if(is_escape_pressed()) {
 				is_window_open = false;
 				break;
@@ -59,12 +59,12 @@ Statuses_type draw_mandelbrot(Screen_type* screen) {
 			//printf("Time passed: %ld ms\n", (end_time - start_time));					
 
 			printf("\t\r%.0lf", txGetFPS());
-	        txSleep();
+			txSleep();
 		}
 
 	txSleep();
 
-    return ALL_IS_OKEY;
+	return ALL_IS_OKEY;
 }
 
 void screen_update(Screen_type* screen) {
@@ -77,10 +77,10 @@ void screen_update(Screen_type* screen) {
 	} else if(is_shift_left_pressed()) {
 		screen->parameters->x_center -= screen->parameters->dx * (is_shift_pressed() ? screen->parameters->big_delta : screen->parameters->small_delta);
 	} else if(is_shift_down_pressed()) {
-        screen->parameters->y_center += screen->parameters->dy * (is_shift_pressed() ? screen->parameters->big_delta : screen->parameters->small_delta);
-    } else if(is_shift_up_pressed()) {
-        screen->parameters->y_center -= screen->parameters->dy * (is_shift_pressed() ? screen->parameters->big_delta : screen->parameters->small_delta);
-    }
+		screen->parameters->y_center += screen->parameters->dy * (is_shift_pressed() ? screen->parameters->big_delta : screen->parameters->small_delta);
+	} else if(is_shift_up_pressed()) {
+		screen->parameters->y_center -= screen->parameters->dy * (is_shift_pressed() ? screen->parameters->big_delta : screen->parameters->small_delta);
+	}
 
 	screen->parameters->dx = (screen->parameters->scale / (float)screen->parameters->width_screen);
 	screen->parameters->dy = (screen->parameters->scale / (float)screen->parameters->height_screen);
@@ -114,7 +114,7 @@ Statuses_type draw_points(Screen_type* screen) {
 			__m128 transparency = _mm_mul_ps(_mm_sqrt_ps(_mm_sqrt_ps(_mm_div_ps(_mm_cvtepi32_ps(new_coordinates.step), many_max_steps))), _160);
 
 			const int* pointer_steps = (const int*) &new_coordinates.step;
-    		const float* pointer_transparency = (const float*) &transparency;			
+			const float* pointer_transparency = (const float*) &transparency;			
 
 			for(int ind = 0; ind < PACK; ++ind)
 				point_colour[ind] = calculate_colour(pointer_steps[ind], screen->parameters->max_steps, (unsigned char)pointer_transparency[ind]);			
